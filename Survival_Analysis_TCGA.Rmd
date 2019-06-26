@@ -1,9 +1,11 @@
 ---
 title: "Survival Analysis of Breast Cancer Data from the TCGA Dataset"
 author: "Ramaa Nathan"
-date: "5/19/2019"
+date: "6/25/2019"
 always_allow_html: yes
-cache: true
+bibliography: SAReferences.bib
+csl: ieee.csl
+link-citations: true
 output: 
   html_document:
   #github_document:
@@ -17,7 +19,7 @@ output:
 
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE, cache=TRUE)
 
 #The Following libraries need to be installed once.
 # Load the bioconductor installer. 
@@ -49,7 +51,7 @@ library(cmprsk)
 library(survminer)
 library(survival)
 
-# Test RTCGA:
+# Test RTCGA: 
 library(RTCGA)
 library(RTCGA.clinical)
 library(RTCGA.mRNA)
@@ -70,16 +72,15 @@ Survival Analysis is especially helpful in analyzing these studies when one or m
 
 The survival function can be modeled using parametric methods (Exponential, Weibull, etc), semi-parametric methods (Cox proportional hazards model), and non-parametric methods (Kaplan Meier model). The difference in survival times due to different treatment groups can also be compared using Logrank tests. The Cox proportional hazards model is useful in modeling the survival function in the presence of covariates. 
 
-The Cancer Genome Atlas (TCGA) Program [1], a joint effort between the National Cancer Institute and the Human Genome Research Institute, provides publicly-available clinical and high-throughput genomic data for thirty-three different types of cancers. This rich data source is widely used by researchers and has led to vast improvements in diagnosing, treating, and preventing cancer. The TCGA dataset will be used in this project to do survival analysis of breast cancer data.
+The Cancer Genome Atlas (TCGA) Program [@tcga], a joint effort between the National Cancer Institute and the Human Genome Research Institute, provides publicly-available clinical and high-throughput genomic data for thirty-three different types of cancers. This rich data source is widely used by researchers and has led to vast improvements in diagnosing, treating, and preventing cancer. The TCGA dataset will be used in this project to do survival analysis of breast cancer data.
 
 # Research Questions
 
-   1. What is the probability of survival for breast cancer? The Kaplan Meier survival analysis will be used.
+   1. What is the probability of survival for breast cancer?
    2. How do different cancers (breast, ovarian, lung) affect survival rates?
-   3. What are the effects of breast cancer therapies (hormone vs chemo) on survival?
-   4. What is the probability of survival for breast cancer when other clinical covariates are considered?
-   5. Which factors affect the probability of survival?
-   6. Which combination of factors affect the probability of survival?
+   3. What are the important factors that influence estimation of survival rate for Breast Cancer?
+   4. What are the effects of each factor on survival?  
+   5. What is the probability of survival for breast cancer when other clinical covariates are considered?
 
   
 # Survival Analysis Basics
@@ -90,10 +91,10 @@ Before we start analysing the data, lets first try to understand the basic termi
 Event times often are useful endpoints in clinical trials. Examples include survival time from onset of diagnosis, time until progression from one stage of disease to another, and time from surgery until hospital discharge. In each case, time is measured from study entry until the event occurs. 
 
 ### Censoring 
-With an endpoint that is based on an event time, there always is the chance of censoring. An event time is censored if there is some amount of follow-up on a subject, but the event is not observed during the study period. There are different types of censoring:
+With an endpoint that is based on an event time, there always is the chance of censoring. An event time is censored if there is some amount of follow-up on a subject and the event is not observed during the study period. There are different types of censoring [@clin_trials]
 
 #### Right Censoring 
-Right censoring occurs when an events is not observed because of loss-to-follow-up, death from a cause other than the trial endpoint, study termination, and other reasons unrelated to the endpoint of interest. This is occurs frequently in studies of survival. There are three types of right censoring: 
+Right censoring occurs when an event is not observed because of loss-to-follow-up, death from a cause other than the trial endpoint, study termination, and other reasons unrelated to the endpoint of interest. This occurs frequently in studies of survival. There are three types of right censoring: 
 
 1. Type I censoring occurs when all subjects are scheduled to begin the study at the same time and end the study at the same time. This type of censoring is common in laboratory animal experiments, but unlikely in human trials.
 2. Type II censoring occurs when all subjects begin the study at the same time and the study is terminated when a predetermined proportion of subjects have experienced the event.
@@ -134,7 +135,7 @@ $$ \Lambda = \frac{h_1 (t)}{h_2 (t)} $$
 
 
 ### Proportional Hazard
-The hazard ratio can be used to compare two treatment groups. When the hazard ratio is constant and independent of time, the two treatment groups are said to have proportional hazard. Basically, the relative risk of the event is constant over time. 
+The hazard ratio can be used to compare two treatment groups. When the hazard ratio is constant and independent of time, the hazards for the two treatment groups are said to be proportional. Basically, the relative risk of the event is constant over time. 
 
 ## Modeling Survival Function
 The survival function can be modeled using parametric and non-parametric methods.
@@ -178,7 +179,9 @@ Recall that in an exponential distribution, the pdf $f(t) = \lambda e^{-\lambda 
 Kaplan Meier and the Cutler-Ederer are two non-parametric methods used to model the survival curve. Here, we will consider  the most commonly used Kaplan Meier method.
 
 #### Kaplan Meier 
-The Kaplan Meier survival curve is a non-parametric technique for estimating the probability of survival, even in the presence of censoring. In this model, there is the notion of a risk set, which is the set of all individuals who are at risk to have an event at time t. This includes individuals who are known to be alive at time t and those who have the actual event at time t.  In the modeling process, the actual failure times (event times) are first ordered in an increasing order. At each event time $t_k$, the number of subjects still at risk ($n_k$), the number of events ($d_k$), number of censored (lost to follow-up) subjects since the last event time ($n_k-d_k$) are recorded. The risk set does not include the subjects lost to follow-up. The Kaplan Meier Survival probability at time $t_k$ utilizes conditional probability - the probability of surviving at time t, given that the person has survived upto time t.
+The Kaplan Meier survival curve is a non-parametric technique for estimating the probability of survival, even in the presence of censoring. In this model, there is the notion of a risk set, which is the set of all individuals who are at risk to have an event at time t. This includes individuals who are known to be alive at time t and those who have the actual event at time t.  
+
+In the modeling process, the actual failure times (event times) are first ordered in an increasing order. At each event time $t_k$, the number of subjects still at risk ($n_k$), the number of events ($d_k$), number of censored (lost to follow-up) subjects since the last event time ($n_k-d_k$) are recorded. The risk set does not include the subjects lost to follow-up. The Kaplan Meier Survival probability at time $t_k$ utilizes conditional probability - the probability of surviving at time t, given that the person has survived upto time t.
 $$
 S(t) =
 \begin{cases}
@@ -195,10 +198,14 @@ Tha basic assumptions in a Kaplan Meier model are:
 
 
 #### Comparison of Survival Curves using Log-Rank
-An important component of survival analysis is to compare the survival curves for two different groups. Even though the the survival rate at a given time $t_x$ may be the same for two groups, the survival rates may vary at all other times. For example, the survival rate may steadily decrease for one group but may initially decrease rapidly for the other group and then be steady til time $t_x$. Here, we will consider the comparison of the non-parametric Kaplan Meier survival curves of two different groups using the Mantel-Haenszel test called the log rank test. So, the following hypothessi is being tested.
-Null Hypothesis: There is no difference in the survivial functions for the different groups. \\
-Alternate Hypothesis: The survival functions of at aleast one of the groups is different.   \\
-In the procedure described by Conchran, Mantel and Haenszel, and assuming two groups - intervention and control, the following 2x2 table is created at each time instant $t_j$ that an event occurs. 
+An important component of survival analysis is to compare the survival curves for two different groups. Even though the the survival rate at a given time $t_x$ may be the same for two groups, the survival rates may vary at all other times. For example, the survival rate may steadily decrease for one group but may initially decrease rapidly for the other group and then be steady till time $t_x$. 
+
+Here, we will compare the non-parametric Kaplan Meier survival curves of two different groups using the Mantel-Haenszel test that is also called the log rank test. In this test, the following hypothesis is being tested.
+
+Null Hypothesis: There is no difference in the survivial functions for the different groups. <br>
+Alternate Hypothesis: The survival functions of at aleast one of the groups is different.   <br>
+
+For example, consider two groups - intervention and control. In the procedure described by Conchran, Mantel and Haenszel,  the following 2x2 table is created at each time instant $t_j$ that an event occurs. 
 
 ```{r, echo=FALSE}
 cntg_table <- tribble(
@@ -225,11 +232,11 @@ $$ MH = \frac{(O-E)^2}{V} = \frac{(\Sigma_{j=1}^{K} a_j - E(a_j))^2}{\Sigma_{j=1
 The MH statistic has approximately a chi-square distribution with one degree of freedom (when only two curves are being compared). An asymptotic approximation is the $Z_{MH}$, the signed square root of MH and with a standard normal distribution.
 $$Z_{MH} = \frac{\Sigma_{j=1}^{K}a_j - E(a_j)}{\sqrt(\Sigma_{j=1}^{K}V(a_j))}$$ 
 
-* Assumptions for the log-rank test.*
-As this is a non-parametric test, there are no assumptions made on the distribution of the survival curves. The same assumptions made for the Kaplan Meir test hold good for this test.
+The log rank test is a non-parametric test. So there are no assumptions made on the distribution of the survival curves. The same assumptions made for the Kaplan Meir test hold good for this test.
 
 ### Cox Proportional Hazard Regression Model
-The Cox Regression Model is used to model the hazard at time t in the presence of multiple covariates, each of which could be categorical or quantitative. In the Cox model, the survival time is based on the assumptions that the survival function has an exponential distribution $S(t) = e^{\lambda t)}$ where the hazard rate  $\lambda$  is now considered to be a linear combination of several covariates $Z=Z_1, Z_2, ..,Z_p$ and so $$\lambda(Z_1, Z_2, ..,Z_p) = \beta_1Z_1 + \beta_2Z_2 +..+ \beta_pZ_p$$. The Cox regression model can then be expressed as 
+The Cox Regression Model is used to model the hazard at time t in the presence of multiple covariates, each of which could be categorical or quantitative. The Cox model is similar to the exponential model where the survival time is given by $S(t) = e^{\lambda t)}$. But the hazard rate  $\lambda$  is now considered to be a linear combination of several covariates $Z=Z_1, Z_2, ..,Z_p$ and so $$\lambda(Z_1, Z_2, ..,Z_p) = \beta_1Z_1 + \beta_2Z_2 +..+ \beta_pZ_p$$
+The Cox regression model can then be expressed as 
 $$ h(t|Z) = h_0(t)exp(\Sigma_{k=1}^{p}\beta_kZ_k)$$ where $h(t|Z)$ is the hazard at time t for an individual with covariates Z and $h_0(t) = h(t|Z=0)$ is the baseline hazard rate.  
 
 The Cox model is semi-parametric, containing  both parametric and non-parametric components. 
@@ -278,7 +285,8 @@ rfns_table <- tribble(
  "Fit Cox Proportional Hazards Model","survival::coxph()","survminer::ggforest()",
  "Test for Proportional Hazards","survival::cox.zph()","survminer::ggcoxzph()",
  "Display Adjusted Survival Curves for Cox Proportional Hazards Model for a Factor"," ","survminer::ggcoxadjustedcurves",
- "Split the survival data set at specific cut times to accommodate the time-dependent covaraites for Cox","survival::survSplit"," "
+ "Split the survival data set at specific cut times to accommodate the time-dependent covaraites for Cox","survival::survSplit"," ",
+ "Convert Weibull restuls to an easy interpretable form","SurvRegCensCov::ConvertWeibull"," "
 )
 rfns_table %>% kable() %>%
     kable_styling(full_width=F,bootstrap_options=c("bordered")) %>%
@@ -478,7 +486,7 @@ dim(brca_clin)
 ```
 
 ## Data Visualizations
-This is survival data set with right censored data. So, we will check the distribution of the right censored data within each category. 
+This is survival data set with right censored data. So, we will check the distribution of the right censored data within each category. The Censoring Event plots here were inspired by a workshop on Survival Analysis [@sweeney_workshop].
 
 ###Censoring and Event Plots  by Age Category
 ```{r age_plot, echo=FALSE}
@@ -538,7 +546,7 @@ From these plots, it can be observed that a large percentage of the subjects are
 
 
 ### Censoring and Event Plots by  Ethnicity
-```{r ehrnicity_plot, echo=FALSE}
+```{r ethnicity_plot, echo=FALSE}
 #Contingency table
 xtabs(~ethnicity+vital_status,data=brca_clin) %>% addmargins()
 
@@ -1201,7 +1209,7 @@ ifelse(better_dist == "weibull", surv_wei_therapy_conv, summary(surv_exp_therapy
 
 ```
 
-When the parametric models are fit with weibull and exponential distributions using therapy type as a predictor, the weibull parametric model is not found to be a good fit as the p-value of the loglokehood values of the model is high. From the exponential model, only the "No Info" grop is found to be significant with a p-value < 0.05. The corresponding hazard ratio $(^{coeff} = e^{.584} = 4.87) indicates that the risk of death for the subjects in the "No Info" group is almost 5 timeshigherthan the risk of deth for subjects given chemotherapy.
+When the parametric models are fit with weibull and exponential distributions using therapy type as a predictor, the weibull parametric model is not found to be a good fit as the p-value of the loglokehood values of the model is high. From the exponential model, only the "No Info" grop is found to be significant with a p-value < 0.05. The corresponding hazard ratio $(^{coeff} = e^{.584} = 4.87) indicates that the risk of death for the subjects in the "No Info" group is almost 5 times higher than the risk of death for subjects given chemotherapy.
 
 ## Cancer Stage (Cancer Stage)
 
@@ -1839,3 +1847,6 @@ cmp_table <- tribble(
 cmp_table %>% kable() %>%
     kable_styling(full_width=F,bootstrap_options=c("bordered"))
 ```
+
+
+#References
