@@ -363,18 +363,11 @@ The RTCGA package in R is used for extracting the clinical data for the Breast I
 
 The survivalTCGA function in the RTCGA package is used to extract the relevant columns.  This function also uses the vital status variable that indicates if the observation was an event or a censor and  combines the number of days to death from first diagnosis and number of days to last follow-up from first diagnosis into a new "times" variable. 
 
-```{r clinical}
+```{r clinical, echo=FALSE}
 # Create the clinical data
 clin <- survivalTCGA(BRCA.clinical, OV.clinical, GBM.clinical, 
                      extract.cols=c("admin.disease_code","patient.drugs.drug.therapy_types.therapy_type"))
-# Show the first few lines
-head(clin)
 
-# How many samples of each type?
-table(clin$admin.disease_code)
-
-# Tabulate by outcome
-xtabs(~admin.disease_code+patient.vital_status, data=clin) %>% addmargins()
 ```
 
 ```{r BRCA_extract, echo=FALSE}
@@ -499,7 +492,7 @@ brca_clin <- brca_clin %>%
 #sapply(brca_clin,class)
 
 #What are the dimensions of the brca_clin dataset?
-dim(brca_clin)
+#dim(brca_clin)
 ```
 
 ## Data Visualizations
@@ -530,7 +523,7 @@ brca_clin %>% filter(!is.na(times)) %>%
 brca_clin %>% dplyr::select(age) %>% summary()
 ```
 
-Without considering censoring the mean survival time seems to be less than 2.5 years. This is not helpful information as censoring information is an important component of survival data.  The TCGA clinical data set is a survival dataset containing  right censor information. We will first visualize the distribution of the right censor data by different categories.  The Censoring Event plots here were inspired by a [workshop on Survival Analysis] (https://github.com/emsweene/New_York_R_Survival_Analysis_Workshop).
+Without considering censoring the mean survival time seems to be less than 2.5 years. This is not helpful information as censoring information is an important component of survival data.  The TCGA clinical data set is a survival dataset containing  right censor information. We will first visualize the distribution of the right censor data by different categories.  The Censoring Event plots here were inspired by a [workshop on Survival Analysis](https://github.com/emsweene/New_York_R_Survival_Analysis_Workshop).
 
 ###Censoring and Event Plots  by Disease
 ```{r disease_plot, echo=FALSE}
