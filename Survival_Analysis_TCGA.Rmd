@@ -806,7 +806,7 @@ surv_wei_conv
 surv_exp <- update(surv_wei,dist="exponential")
 summary(surv_exp)
 lambda <- exp(-1.0 * unname(surv_exp$icoef))
-paste("Constant Hazard Rate for Exponential Distribution without any predictor:",format(lambda,2), " events per year")
+paste("Constant Hazard Rate for Exponential Distribution without any predictor:",round(lambda,2), " events per year")
 
 # Compare the weibull and exponential distributions
 cmp_wei_exp <- anova(surv_wei, surv_exp)
@@ -951,7 +951,7 @@ The p-value of the Wald test for age is less than 0.05 . This indicates that we 
 
 From the Cox PH model, the hazard ratio (exp(coef)) is 1.027 indicating the hazard rate increases by a factor of 1.027 for every increase in age by 1 year. 
 
-### Parametric Modeling - Age
+### Parametric Modeling - Age as Catergorical
 ```{r, echo=FALSE}
 #Fit Weibull 
 surv_wei_age <- survreg(surv_obj_age ~ agecat, data=brca_clin_age, dist="weibull")
@@ -961,8 +961,8 @@ summary(surv_wei_age)
 #Fit Exponential
 surv_exp_age <- update(surv_wei_age,dist="exponential")
 summary(surv_exp_age)
-#lambda <- exp(-1.0 * unname(surv_exp_age$icoef[1]))
-#paste("Constant Hazard Rate for Exponential Distribution with Age as predictor:",lambda)
+#lambda <- exp(-1.0 * unname(surv_exp_age$coefficients[1]))
+#paste("Constant Hazard Rate for Exponential Distribution with Age as predictor:",round(lambda,2), " events/year")
 ```
 
 The survival data is fit with  parametric models using both the exponential and weibull distributions and compared.
@@ -989,7 +989,7 @@ From the converted results of the weibull model, the risk of death for the middl
 
 Equivalently, the survival time for the middle age group is higher by 46 % (ETR=1.46) for the middle age group when compared with the younger group and the survival time for the older age group is less by 95% when compared with the younger age group.
 
-#Age as continuous
+### Parameter Modeling Age as continuous
 ```{r, echo=FALSE}
 #Fit Weibull 
 surv_wei_age_c <- survreg(surv_obj_age ~ age, data=brca_clin_age, dist="weibull")
@@ -999,8 +999,8 @@ summary(surv_wei_age_c)
 #Fit Exponential
 surv_exp_age <- update(surv_wei_age,dist="exponential")
 summary(surv_exp_age)
-#lambda <- exp(-1.0 * unname(surv_exp_age$icoef[1]))
-#paste("Constant Hazard Rate for Exponential Distribution with Age as predictor:",lambda)
+#lambda <- exp(-1.0 * unname(surv_exp_age$coefficients[1]))
+#paste("Constant Hazard Rate for Exponential Distribution with Age as predictor:",round(lambda,2), " events/year")
 ```
 
 ## Race
@@ -1158,7 +1158,7 @@ The groups are very unbalanced with very few subjects in the non-hispanic group.
 
 
 ### Cox Proportional Hazard (PH) Model for Ethnicity
-```{r, echo=FALSE}
+```{r, echo=FALSE, message=FALSE}
 # Fit the model
 cox_ethnicity <- coxph(surv_obj_ethnicity ~ ethnicity, data=brca_clin_ethnicity)
 ```
@@ -1174,8 +1174,8 @@ summary(surv_wei_ethnicity)
 #Fit Exponential
 surv_exp_ethnicity <- update(surv_wei_ethnicity,dist="exponential")
 summary(surv_exp_ethnicity)
-#lambda <- exp(-1.0 * unname(surv_exp_age$icoef[1]))
-#paste("Constant Hazard Rate for Exponential Distribution with Age as predictor:",lambda)
+#lambda <- exp(-1.0 * unname(surv_exp_age$coefficients[1]))
+#paste("Constant Hazard Rate for Exponential Distribution with Age as predictor:",round(lambda,2), " events/year")
 ```
 
 The survival data is fit with  parametric models using both the exponential and weibull distributions and compared.
@@ -1309,8 +1309,8 @@ The Weibull model is not a good fit as the p-value of the loglikelihood values o
 # We  cannot consider nested models here as weibull is not a good fit.
 surv_exp_therapy <- survreg(surv_obj_therapy ~ therapy_type, data=brca_clin_therapy,dist="exponential")
 summary(surv_exp_therapy)
-lambda <- exp(-1.0 * unname(surv_exp_therapy$icoef[1]))
-paste("Constant Hazard Rate for Exponential Distribution with therapy as predictor:",format(lambda, digits=2) , "events/year")
+lambda <- exp(-1.0 * unname(surv_exp_therapy$coefficients[1]))
+paste("Constant Hazard Rate for Exponential Distribution with therapy as predictor:",round(lambda, digits=2) , "events/year")
 
 ```
 
@@ -1385,7 +1385,9 @@ symnum(surv_pairdiff_stage$p.value, cutpoints = c(0, 0.0001, 0.001, 0.01, 0.05, 
 ```
 
 From the survival curves and the cumilative hazard curves, it can be observed that the hazard rate steadily increases with increase in the identified cancer stage number. Correspondingly, the median survival time steadily reduces from 10.8 years for stage 1 to 3.7 years for stage 4.
+
 On comparison of the survival curves, it is found that the log rank statistic has a chi-square distribution with 4 degress of freedom and has a value of 32.9 and a very small p-value that is less than 0.01. Using a significance of 0.05 and with a p-value < 0.01,  we have sufficient statistical evidence to reject the null hypothesis and conclude that the survival curves for the different stages are different from each other. 
+
 Further when the survival curves are compared with each other in pairs, it is found that only survival curves for stage1 and stage2 are not significantly different. All the other curves are significantly different from the survival curve for stage 1. 
 
 
@@ -1428,15 +1430,22 @@ The split into multiple timegroups introduces other issues, like zero variance, 
 ```{r, echo=FALSE}
 #Fit Weibull 
 surv_wei_stage <- survreg(surv_obj_stage ~ pathologic_stage, data=brca_clin_stage, dist="weibull")
+summary(surv_wei_stage)
 surv_wei_stage_conv <- ConvertWeibull(surv_wei_stage)
-surv_wei_stage_conv
+
 
 #Fit Exponential
 surv_exp_stage <- update(surv_wei_stage,dist="exponential")
 summary(surv_exp_stage)
-lambda <- exp(-1.0 * unname(surv_exp_stage$icoef[1]))
-paste("Constant Hazard Rate for Exponential Distribution with stage as predictor:",lambda)
+lambda <- exp(-1.0 * unname(surv_exp_stage$coefficients[1]))
+paste("Constant Hazard Rate for Exponential Distribution with stage as predictor:", round(lambda,2), " events/year")
+```
 
+
+The survival data is fit with  parametric models using both the exponential and weibull distributions and compared.
+The fitness of the each of these models is verified by checking the loglikelihood values of the models. For both the models,  p-values for the chi-square distribution with one degree of freedom are very small (<0.05) indicating that models are good fits. 
+
+```{r, echo=FALSE}
 # Compare the weibull and exponential distributions
 cmp_wei_exp_stage <- anova(surv_wei_stage, surv_exp_stage)
 p_val <- cmp_wei_exp_stage$"Pr(>Chi)"[2]
@@ -1445,14 +1454,13 @@ deviance_exp <- cmp_wei_exp_stage$"-2*LL"[2]
 better_dist <- ifelse(p_val < 0.05, ifelse(deviance_wei < deviance_exp, "weibull", "exp"), "both same")
 paste("The better fit parametric model:",better_dist)
 
-ifelse(better_dist == "weibull", surv_wei_stage_conv, summary(surv_exp_stage))
+ifelse(better_dist == "weibull", print(surv_wei_stage_conv), summary(surv_exp_stage))
 
 ```
 
-The survival data is fit with  parametric models using both the exponential and weibull distributions and compared.
-The fitness of the each of these models is verified by checking the loglikelihood values of the models. For both the models,  p-values for the chi-square distribution with one degree of freedom are very small (<0.05) indicating that models are good fits. 
 Anova is used to compare the two fitted models and it is found that the two model fits are significantly different and the model using assuming weibull distribution is the better one with the lower loglikelihood value. 
-From the converted results of the weibull model, the risk of death increases with increase in the cancer stage number. When compared with the risk of death for stage 1, the risk is higher by a factor of 1.3 for stage 2, by a facgtor of 2.5 for stage 3 and by a factor of 6.6 for stage 4.  Equivalently, the survival time for the stge 2 group reduces by 16% for stage 2, by 45% for stage 3 and by 70% for stage 4 when comapred with the survival time length fot stage 1. 
+
+From the converted results of the weibull model, the risk of death increases with increase in the cancer stage number. When compared with the risk of death for stage 1, the risk is higher by a factor of 1.3 for stage 2, by a factor of 2.5 for stage 3 and by a factor of 6.6 for stage 4.  Equivalently, the survival time for the stage 2 group reduces by 16% for stage 2, by 45% for stage 3 and by 70% for stage 4 when compared with the survival time length for stage 1. 
 
 
 ## Tumor Stage (Pathology T)
@@ -1549,14 +1557,21 @@ The split into multiple timegroups introduces other issues, like zero variance, 
 #Fit Weibull 
 surv_wei_Tstage <- survreg(surv_obj_Tstage ~ pathologyTstage, data=brca_clin_Tstage, dist="weibull")
 surv_wei_Tstage_conv <- ConvertWeibull(surv_wei_Tstage)
-surv_wei_Tstage_conv
+summary(surv_wei_Tstage)
 
 #Fit Exponential
 surv_exp_Tstage <- update(surv_wei_Tstage,dist="exponential")
 summary(surv_exp_Tstage)
-lambda <- exp(-1.0 * unname(surv_exp_Tstage$icoef))
-paste("Constant Hazard Rate for Exponential Distribution with Tstage as predictor:",lambda)
 
+lambda <- exp(-1.0 * unname(surv_exp_Tstage$coefficients[1]))
+paste("Constant Hazard Rate for Exponential Distribution with Tstage as predictor:",round(lambda,2), " events/year")
+
+```
+
+The survival data is fit with  parametric models using both the exponential and weibull distributions.
+The fitness of the each of these models is first verified by checking the loglikelihood values of the models. For both the models,  p-values for the chi-square distribution with one degree of freedom are high (> 0.05) indicating that both the parametric models are not good fits. 
+
+```{r, include=FALSE}
 # Compare the weibull and exponential distributions
 cmp_wei_exp_Tstage <- anova(surv_wei_Tstage, surv_exp_Tstage)
 p_val <- cmp_wei_exp_Tstage$"Pr(>Chi)"[2]
@@ -1565,12 +1580,10 @@ deviance_exp <- cmp_wei_exp_Tstage$"-2*LL"[2]
 better_dist <- ifelse(p_val < 0.05, ifelse(deviance_wei < deviance_exp, "weibull", "exp"), "both same")
 paste("The better fit parametric model:",better_dist)
 
-ifelse(better_dist == "weibull", surv_wei_Tstage_conv, summary(surv_exp_Tstage))
+ifelse(better_dist == "weibull", print(surv_wei_Tstage_conv), summary(surv_exp_Tstage))
 
 ```
 
-The survival data is fit with  parametric models using both the exponential and weibull distributions and compared.
-The fitness of the each of these models is verified by checking the loglikelihood values of the models. For both the models,  p-values for the chi-square distribution with one degree of freedom are high (> 0.05) indicating that botht he parametric models are not good fits. 
 
 
 ## Metastasis Status (Pathology M)
@@ -1623,7 +1636,8 @@ symnum(surv_pair_Mstage$p.value, cutpoints = c(0, 0.0001, 0.001, 0.01, 0.05, 0.1
 ```
 
 From the cumulative hazard curves,it can be observed that for patients with no metastasis (M0 and CM0 stages), the hazard rate is very low for the initial five years and then linearly increases with time and becomes steady after 12 years. The median survival time in this case is around 10 years. When there is metastasis, the hazard rate is very high during the first five years and then becomes steady. The median survival time reduces to 3.7 years in this case. 
-But when the survival curves for the different stages are statistically compared, the log rank statistic for a chi-square distribution with 2 degress of freedom has a value of 7.6 and a  p-value of 0.05. Using a significance of 0.05,  we do not have strong statistical evidence to reject the null hypothesis and conclude that the survival curves for the different stages are not signifcantly different from each other. When the survival curves are compared with each other using ana family-wise p-value, the survival curves for stagem0 and m1 seem to be different. 
+
+But when the survival curves for the different stages are statistically compared, the log rank statistic for a chi-square distribution with 2 degress of freedom has a value of 7.6 and a  p-value of 0.05. Using a significance of 0.05,  we do not have very strong statistical evidence to reject the null hypothesis and conclude that the survival curves for the different stages may not be signifcantly different from each other. Still, when the survival curves are compared with each other using a family-wise p-value, the survival curves for stagem0 and m1 are found to be  different. 
 
 ### Cox Proportional Hazard (PH) Model for Pathologic Stage (M Stage)
 ```{r, echo=FALSE}
@@ -1637,14 +1651,19 @@ Fitting the Cox model with the metastasis stage as the predictor introduces inif
 #Fit Weibull 
 surv_wei_Mstage <- survreg(surv_obj_Mstage ~ pathologyMstage, data=brca_clin_Mstage, dist="weibull")
 surv_wei_Mstage_conv <- ConvertWeibull(surv_wei_Mstage)
-surv_wei_Mstage_conv
+summary(surv_wei_Mstage)
 
 #Fit Exponential
 surv_exp_Mstage <- update(surv_wei_Mstage,dist="exponential")
 summary(surv_exp_Mstage)
-lambda <- exp(-1.0 * unname(surv_exp_Mstage$icoef))
-paste("Constant Hazard Rate for Exponential Distribution with Mstage as predictor:",lambda)
+lambda <- exp(-1.0 * unname(surv_exp_Mstage$coefficients[1]))
+paste("Constant Hazard Rate for Exponential Distribution with Mstage as predictor:",round(lambda,2), " events/year")
+``` 
 
+The survival data is fit with  parametric models using both the exponential and weibull distributions and compared.
+The fitness of the each of these models is verified by checking the loglikelihood values of the models. For both the models,  p-values for the chi-square distribution with one degree of freedom are high (> 0.05) indicating that models are not good fits. 
+
+```{r, include=FALSE}
 # Compare the weibull and exponential distributions
 cmp_wei_exp_Mstage <- anova(surv_wei_Mstage, surv_exp_Mstage)
 p_val <- cmp_wei_exp_Mstage$"Pr(>Chi)"[2]
@@ -1657,8 +1676,6 @@ ifelse(better_dist == "weibull", surv_wei_Mstage_conv, summary(surv_exp_Mstage))
 
 ```
 
-The survival data is fit with  parametric models using both the exponential and weibull distributions and compared.
-The fitness of the each of these models is verified by checking the loglikelihood values of the models. For both the models,  p-values for the chi-square distribution with one degree of freedom are high (> 0.05) indicating that models are not good fits. 
 
 
 ## Lymph Nodes Status (Pathology N)
@@ -1761,14 +1778,19 @@ ggadjustedcurves(cox_Nstage, var="pathologyNstage", data = brca_clin_Nstage)
 #Fit Weibull 
 surv_wei_Nstage <- survreg(surv_obj_Nstage ~ pathologyNstage, data=brca_clin_Nstage, dist="weibull")
 surv_wei_Nstage_conv <- ConvertWeibull(surv_wei_Nstage)
-surv_wei_Nstage_conv
+summary(surv_wei_Nstage)
 
 #Fit Exponential
 surv_exp_Nstage <- update(surv_wei_Nstage,dist="exponential")
 summary(surv_exp_Nstage)
-lambda <- exp(-1.0 * unname(surv_exp_Nstage$icoef[1]))
-paste("Constant Hazard Rate for Exponential Distribution with Nstage as predictor:",lambda)
+lambda <- exp(-1.0 * unname(surv_exp_Nstage$coefficients[1]))
+paste("Constant Hazard Rate for Exponential Distribution with Nstage as predictor:",round(lambda,2), " events/year")
+```
 
+The survival data is fit with  parametric models using both the exponential and weibull distributions and compared.
+The fitness of the each of these models is verified by checking the loglikelihood values of the models. For both the models,  p-values for the chi-square distribution with one degree of freedom are very small (<0.05) indicating that models are good fits. 
+
+```{r, echo=FALSE}
 # Compare the weibull and exponential distributions
 cmp_wei_exp_Nstage <- anova(surv_wei_Nstage, surv_exp_Nstage)
 p_val <- cmp_wei_exp_Nstage$"Pr(>Chi)"[2]
@@ -1777,14 +1799,12 @@ deviance_exp <- cmp_wei_exp_Nstage$"-2*LL"[2]
 better_dist <- ifelse(p_val < 0.05, ifelse(deviance_wei < deviance_exp, "weibull", "exp"), "both same")
 paste("The better fit parametric model:",better_dist)
 
-ifelse(better_dist == "weibull", surv_wei_Nstage_conv, summary(surv_exp_Nstage))
+ifelse(better_dist == "weibull", print(surv_wei_Nstage_conv), summary(surv_exp_Nstage))
 
 ```
 
+Anova is used to compare the two fitted models and it is found that the two model fits are significantly different with the  weibull parametric being the better one with the lower loglikelihood value.
 
-The survival data is fit with  parametric models using both the exponential and weibull distributions and compared.
-The fitness of the each of these models is verified by checking the loglikelihood values of the models. For both the models,  p-values for the chi-square distribution with one degree of freedom are very small (<0.05) indicating that models are good fits. 
-Anova is used to compare the two fitted models and it is found that the two model fits are significantly different with the  weibull parametric being the better one with the lower loglikelihood value. 
 From the converted results of the weibull model, when compared to the group of subjects with no metastasis in the lymph nodes, the risk of death increases when the metastasis increases to 1-3 lymph nodes, increases by 300% when the metastasis increases to 4-9 lymph nodes and by 550% whe metastasis increases to 10 or more lymph nodes. Equivalently, when compared with no metastatis, the survival time decreases  by 34% when for 1-3 lymph nodes, by 52% for 4-9 lymph nodes and by 65% for metastasis in 10 or more lymph nodes
 
 
@@ -1792,7 +1812,9 @@ From the converted results of the weibull model, when compared to the group of s
 
 The final step is to consider all the predictors to determine the effect of each predictor on the hazard rate, while accounting for all other predictors. 
 We had considered nine predictors - age at first diagnosis, race, ethnicity, therapy_type, cancer stage, tumor stage, metastasis stage, and lymph node stage. 
-Of these race, ethnicity, and metastasis stage were not found to be significant. So, we drop them from our final list. Cancer_stage is jointly by the tumor (T) stage, metastasis (M) stage, and lymph node (N) stage. So, in any linear model, we cannot incldue the overall cancel stage and the individual T,M,N stages as this will result in multicollinearity. So, we consider two separate models, one with only cancer stage and the other with the individual T,M,N stages.
+Of these race, ethnicity, and metastasis stage were not found to be significant. So, we drop them from our final list. 
+
+Cancer_stage is jointly determined by the tumor (T) stage, metastasis (M) stage, and lymph node (N) stage. So, in any linear model, we cannot incldue the overall cancer stage and the individual T,M,N stages as this will result in multicollinearity. So, we consider two separate models, one with only cancer stage and the other with the individual T,M,N stages.
 
 ```{r, include=FALSE}
 # surv_obj_all <- with(brca_clin, Surv(years_to_event, vital_status))
@@ -1818,7 +1840,9 @@ Of these race, ethnicity, and metastasis stage were not found to be significant.
 ```{r, cox models}
 surv_obj_all <- with(brca_clin, Surv(years_to_event, vital_status))
 cox_all <- coxph(surv_obj_all ~ age  + therapy_type + pathologic_stage , data=brca_clin)
+cox_all_cat <- coxph(surv_obj_all ~ agecat  + therapy_type + pathologic_stage , data=brca_clin)
 ```
+
 
 **Check for Proportional Hazards Assumption**
 ```{r, echo=FALSE}
@@ -1836,7 +1860,8 @@ summary(cox_all)
 plot(cox_all$residuals)
 ```
 
-The base hazard model corresponds to age=0, treatment type of chemotherapy, and cancer stage 1. Of the other predictors, the coefficients for  age, therapy_type of "No info", cancer stages of 3,4, and X are found to be significant.
+The base hazard model corresponds to age=0, treatment type of chemotherapy, and cancer stage 1. Of the other predictors, the coefficients for  age, therapy_type of "No info", cancer stages of 3,4, and X are found to be significant. 
+
 The Cox model equation can then be written as: 
  $$  H(t|age,chemo,hormone,no_info, other,stage1,stage2,stage3,stage4,stageX) = 
 H_0(t) exp(0.023*age + 1.18*No\_info + 1.09*stage3 + 1.685*stage4 + 0.97*stageX) 
@@ -1856,7 +1881,7 @@ Considering only the signifcant predictors, the hazard ratio (exp(coef)) values 
 cox_all_2 <- coxph(surv_obj_all ~ age + therapy_type +  pathologyTstage + pathologyNstage, data=brca_clin)
 ```
 
-**Check for Proportional Hazards Assumptoin**
+**Check for Proportional Hazards Assumption**
 ```{r}
 test_ph_all_2 <- cox.zph(cox_all_2)
 test_ph_all_2
@@ -1943,13 +1968,13 @@ THe final step is to build a Cox PH model considering the interactions between e
 #Fit Weibull 
 surv_wei_all <- survreg(surv_obj_all ~ age + therapy_type + pathologic_stage, data=brca_clin, dist="weibull")
 surv_wei_all_conv <- ConvertWeibull(surv_wei_all)
-surv_wei_all_conv
+summary(surv_wei_all)
 
 #Fit Exponential
 surv_exp_all <- update(surv_wei_all,dist="exponential")
 summary(surv_exp_all)
-lambda <- exp(-1.0 * unname(surv_exp_all$icoef[1]))
-paste("Constant Hazard Rate for Exponential Distribution with all as predictor:",lambda)
+lambda <- exp(-1.0 * unname(surv_exp_all$coefficients[1]))
+paste("Constant Hazard Rate for Exponential Distribution with all as predictor:",round(lambda,2), " events/year")
 
 # Compare the weibull and exponential distributions
 cmp_wei_exp_all <- anova(surv_wei_all, surv_exp_all)
@@ -1963,7 +1988,7 @@ ifelse(better_dist == "weibull", surv_wei_all_conv, summary(surv_exp_all))
 
 ```
 
-## Summary
+# Summary of Results
 The following findings can be summarised:
 
    1. No predictors:
@@ -1995,40 +2020,38 @@ The following findings can be summarised:
       b. Parametric Model: Only exponential model fits. The constant hazard rate is 0.04 events/year and risk of death increases by 4.87 with no treatment vs chemotherapy
       c. Cox Proportional Hazards Model: The risk of death increases by a factor of 4 with no treatmentvs chemotherapy.
    6. Cancer Stage Diagnosis:
-      a. Kaplan Meir Results:
+      a. Kaplan Meir Results:  Median survival time decreases with increase in diagnosis of cancer stage number from 10.8 years to 3.7 years. The survival curves of all stges are different from each other except between stage 1 and stage 2.
       b. Parametric Model:
-      c. Cox Proportional Hazards Model:
+         i. Weibull is the better model. 
+         ii. From the converted results of the weibull model, the risk of death increases with increase in the cancer stage number. When compared with the risk of death for stage 1, the risk is higher by a factor of 1.3 for stage 2, by a factor of 2.5 for stage 3 and by a factor of 6.6 for stage 4.  Equivalently, the survival time for the stage 2 group reduces by 16% for stage 2, by 45% for stage 3 and by 70% for stage 4 when comapred with the survival time length for stage 1. 
+      c. Cox Proportional Hazards Model: Proportional  hazards condition not met. Splitting up the datasets on time does not yield good Cox models. 
    7. Tumor Stage:
-      a. Kaplan Meir Results:
+      a. Kaplan Meir Results: Median survival time decreases with increase in stage number of the tumor from 10 years for the first three stages to 4.5 years for stage t4. The survival curves are not found to be significantly different.
       b. Parametric Model:
-      c. Cox Proportional Hazards Model:
+      c. Cox Proportional Hazards Model: Proportional Hazards condition is not met. Splitting up the datasets on time does not yield good Cox models. 
    8. Metastasis Stage:
-      a. Kaplan Meir Results:
-      b. Parametric Model:
-      c. Cox Proportional Hazards Model:
+      a. Kaplan Meir Results: The median survival time is 10.5 years for stage m0 , with no metastasis. The survival curves for stages m0 and m1 are just slightly different from each not but statistically significant.
+      b. Parametric Model: Both models are not good fits.
+      c. Cox Proportional Hazards Model: Cox model is not a good fit as it results in infinite values.
    9. Lymphnodes Stage:
-      a. Kaplan Meir Results:
-      b. Parametric Model:
-      c. Cox Proportional Hazards Model:
+      a. Kaplan Meir Results: Survival time reduces exponentially with increase in the number of lymph nodes with metastasis. The median survival time reduces from 11.7 years to 6.7 years. Survival curve for stage n0 (no metastasis in lymph nodes) is significantly different from survival curces 
+      b. Parametric Model: Weibull is the best fit model.  when compared to the group of subjects with no metastasis in the lymph nodes, the risk of death increases by a facgor of 1.98 when the metastasis increases to 1-3 lymph nodes, increases by a factor of 3.3 when the metastasis increases to 4-9 lymph nodes and by a factor of 5.5 whe metastasis increases to 10 or more lymph nodes.
+      c. Cox Proportional Hazards Model: Cox model is a good fit and coefficients for all stages are significant. Hazard ratio and hence the risk of death increases for each stage relative to the stage with no metastasis.  When compared to the group of subjects with no metastasis in the lymph nodes (stage n0), the risk of death increases by a factor of 1.95 when the metastasis increases to 1-3 lymph nodes (stage n1), increases by a factor of 3.15 when the metastasis increases to 4-9 lymph nodes (stage n2) and by a factor of 5.22 when metastasis increases to 10 or more lymph nodes (stage n3). 
    10. Combined:
-      a. Kaplan Meir Results:
-      b. Parametric Model:
-      c. Cox Proportional Hazards Model:
+      a. Cox Proportional Hazards Model (Age, Therapy, Cancer Stage): The base hazard model corresponds to age=0, treatment type of chemotherapy, and cancer stage 1. Of the other predictors, the coefficients for  age, therapy_type of "No info", cancer stages of 3,4, and X are found to be significant. 
+         i. For every one additional year of age, the risk of death increases by a factor of 1.02.
+         ii. Compared to subjects on chemotherapy treatment, the risk of death for subjects with No info on the therapy increases by a factor 3.25
+         iii. Compared to subjects diagnosed with stage 1 cancer, the risk of death increases by a factor of 2.98 for subjects diagnosed with lymph node stage 3
+         iv. Compared to subjects diagnosed with stage 1 cancer, the risk of death increases by a factor of 5.39 for subjects diagnosed with lymph node stage 4 
+         v. Compared to subjects diagnosed with stage 1 cancer, the risk of death increases by a factor of 2.64 for subjects diagnosed with lymph node stage X (or not assessed) cancer 
+      b. Cox Proportional Hazards Model (Age, Therapy, Lymph Nodes Stage): The base hazard model corresponds to age=0, treatment type of chemotherapy, tumor stage 1 and lymph node stage 0 (n0 - no cancer in lymph nodes). Of the other predictors, the coefficients for  age, therapy_type of "No info", lymph node stages 3,4, and X are found to be significant.
+         i. For every one additional year of age, the risk of death increases by a factor of 1.02.
+         ii. Compared to subjects on chemotherapy treatment, the risk of death for subjects with No info on the therapy increses by a factor of 3.96
+         iii. Compared to subjects diagnosed with stage 1 cancer, the risk of death increases by a factor of 4.6 for subjects diagnosed with stage n2
+         iv. Compared to subjects diagnosed with stage 1 cancer, the risk of death increases by a factor of 5.9 for subjects diagnosed with stage n3
+         v. Compared to subjects diagnosed with stage 1 cancer, the risk of death increases by a factor of 2.5 for subjects diagnosed with stage nX (or not assessed) cancer  
+      
    
-
-```{r, echo=FALSE}
-cmp_table <- tribble(
- ~"Predictors", ~"Best Model", ~"Significant Values", ~"Risk factor",
- "Age", " "," "," ",
- "Therapy Type", " "," "," ",
- "Cancer Stage", " "," "," ",
- "Tumor Stage", " "," "," ",
- "Metastasis Stage", " "," "," ",
- "Lymph Node Stage", " "," "," ",
-)
-cmp_table %>% kable() %>%
-    kable_styling(full_width=F,bootstrap_options=c("bordered"))
-```
 
 
 #References
