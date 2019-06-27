@@ -2051,7 +2051,18 @@ The following findings can be summarised:
          iv. Compared to subjects diagnosed with stage 1 cancer, the risk of death increases by a factor of 5.9 for subjects diagnosed with stage n3
          v. Compared to subjects diagnosed with stage 1 cancer, the risk of death increases by a factor of 2.5 for subjects diagnosed with stage nX (or not assessed) cancer  
       
-   
+
+# Answers to Research Questions:
+   1. What is the median survival time for breast cancer?
+   In the absence of any predictors, the median survival time is 9.5 years.
+   2. How do different cancers (breast, ovarian, lung) affect survival rates?
+   3. What are the important factors that influence risk of death for Breast Cancer?
+      When considered individually or together age at first diagnosis, no therapy, cancer stage 3 and cancer stage 4, and any metastasis into the lymph nodes significantly reduce survival time. 
+   4. What are the effects of each factor on survival?  
+      The number of lymph nodes that have been metasized into seems to be the strongest predictor of survival. 
+   5. What is the probability of survival for breast cancer when other clinical covariates are considered?
+      The results do not change when the predictors are all accounted for indicating an additive model with no interactions. 
+
 
 
 #References
