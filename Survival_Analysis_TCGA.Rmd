@@ -72,7 +72,7 @@ Survival Analysis is especially helpful in analyzing these studies when one or m
 
 The survival function can be modeled using parametric methods (Exponential, Weibull, etc), semi-parametric methods (Cox proportional hazards model), and non-parametric methods (Kaplan Meier model). The difference in survival times due to different treatment groups can also be compared using Logrank tests. The Cox proportional hazards model is useful in modeling the survival function in the presence of covariates. 
 
-The Cancer Genome Atlas (TCGA) Program [@tcga], a joint effort between the National Cancer Institute and the Human Genome Research Institute, provides publicly-available clinical and high-throughput genomic data for thirty-three different types of cancers. This rich data source is widely used by researchers and has led to vast improvements in diagnosing, treating, and preventing cancer. The TCGA dataset will be used in this study to do survival analysis of breast cancer data.
+[The Cancer Genome Atlas (TCGA) Program](https://www.cancer.gov/about-nci/organization/ccg/research/structural-genomics/tcga), a joint effort between the National Cancer Institute and the Human Genome Research Institute, provides publicly-available clinical and high-throughput genomic data for thirty-three different types of cancers. This rich data source is widely used by researchers and has led to vast improvements in diagnosing, treating, and preventing cancer. The TCGA dataset will be used in this study to do survival analysis of breast cancer data.
 
 # Research Questions
 Here are a few questions that we could answer with this study.
@@ -2007,8 +2007,9 @@ THe final step is to build a Cox PH model considering the interactions between e
 ```
 
 
-### Parametric modeling - All
+
 ```{r, include=FALSE}
+### Parametric modeling - All
 #Fit Weibull 
 surv_wei_all <- survreg(surv_obj_all ~ age + therapy_type + pathologic_stage, data=brca_clin, dist="weibull")
 surv_wei_all_conv <- ConvertWeibull(surv_wei_all)
