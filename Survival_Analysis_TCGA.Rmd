@@ -363,6 +363,19 @@ The RTCGA package in R is used for extracting the clinical data for the Breast I
 
 The survivalTCGA function in the RTCGA package is used to extract the relevant columns.  This function also uses the vital status variable that indicates if the observation was an event or a censor and  combines the number of days to death from first diagnosis and number of days to last follow-up from first diagnosis into a new "times" variable. 
 
+```{r clinical}
+# Create the clinical data
+clin <- survivalTCGA(BRCA.clinical, OV.clinical, GBM.clinical, 
+                     extract.cols=c("admin.disease_code","patient.drugs.drug.therapy_types.therapy_type"))
+# Show the first few lines
+head(clin)
+
+# How many samples of each type?
+table(clin$admin.disease_code)
+
+# Tabulate by outcome
+xtabs(~admin.disease_code+patient.vital_status, data=clin) %>% addmargins()
+```
 
 ```{r BRCA_extract, echo=FALSE}
 # Create the clinical data
@@ -490,10 +503,11 @@ dim(brca_clin)
 ```
 
 ## Data Visualizations
-This is survival data set with right censored data. So, we will check the distribution of the right censored data within each category. The Censoring Event plots here were inspired by a workshop on Survival Analysis [@sweeney_workshop].
+
 
 ### Histograms
 **Age at First Diagnosis**
+```{r}
 brca_clin %>% filter(!is.na(age)) %>% 
   ggplot(aes(x=age)) +
     geom_histogram(aes(y=..density..),color="black",fill="white")+
@@ -501,17 +515,54 @@ brca_clin %>% filter(!is.na(age)) %>%
     geom_vline(aes(xintercept=mean(age)), color="blue", linetype="dashed", size=1) +
     labs(title="Age at First Diagnosis")
   
+```
+
+The average age at first diagnosis seems to 59 years and the distribution of age is mostly symmetrical with a  small bimodal effect. 
+
 **Time to Event**  
+```{r}
 brca_clin %>% filter(!is.na(times)) %>%
-  ggplot(aes(x=times)) +
+  ggplot(aes(x=years_to_event)) +
     geom_histogram(color="black",fill="white") +
-    geom_vline(aes(xintercept=mean(times)), color="blue", linetype="dashed", size=1) +
+    geom_vline(aes(xintercept=mean(years_to_event)), color="blue", linetype="dashed", size=1) +
     labs(title="Time to Event")
 
 brca_clin %>% dplyr::select(age) %>% summary()
+```
+
+Without considering censoring the mean survival time seems to be less than 2.5 years. This is not helpful information as censoring information is an important component of survival data.  The TCGA clinical data set is a survival dataset containing  right censor information. We will first visualize the distribution of the right censor data by different categories.  The Censoring Event plots here were inspired by a [workshop on Survival Analysis] (https://github.com/emsweene/New_York_R_Survival_Analysis_Workshop).
+
+###Censoring and Event Plots  by Disease
+```{r disease_plot, echo=FALSE}
+#Contingency table
+xtabs(~admin.disease_code+patient.vital_status,data=clin) %>% addmargins()
+
+clin <- clin %>%
+  filter(!is.na(admin.disease_code)) %>%
+  arrange(admin.disease_code) 
+
+clin %>%
+  mutate(index=1:n()) %>% 
+  ggplot(
+       aes(xend = 0, 
+           y = index, 
+           x = times, 
+           yend = index, 
+           colour = admin.disease_code,
+           shape = factor(patient.vital_status))) + 
+  geom_segment() + 
+  geom_point() +
+  ggtitle("Right Censoring in TCGA - By Disease") +
+  ylab("Subjects") + 
+  scale_shape_discrete(name = "Status", labels = c("Censored","Event")) 
+
+```
+
+From the contingency table and the plots comparing the diseases of BRCA (breast cancer), GBM (Glioblastoma Multiforme) and OV (Ovarian Cancer), it can be observed that less that almost 50% of the cases are for Breast Cancer and the rest are almost equally split between ovarian and GBM. In these, 10% of the subjects with Breast cancer, 75% of the subjects with GBM and 50% of the subjects with ovarian cancer did not survive (had events). 
+
 
 ###Censoring and Event Plots  by Age Category
-The TCGA clinical data set is a survival dataset containing  right censor information. We will first visualize the distribution of teh right censor data by different categories.
+
 , 
 ```{r age_plot, echo=FALSE}
 #Contingency table
@@ -2054,8 +2105,9 @@ The following findings can be summarised:
 
 # Answers to Research Questions:
    1. What is the median survival time for breast cancer?
-   In the absence of any predictors, the median survival time is 9.5 years.
+      In the absence of any predictors, the median survival time is 9.5 years.
    2. How do different cancers (breast, ovarian, lung) affect survival rates?
+      Of the three types of cancers  BRCA (breast cancer), GBM (Glioblastoma Multiforme) and OV (Ovarian Cancer) that were compared, BRCA has the highest survival rate.
    3. What are the important factors that influence risk of death for Breast Cancer?
       When considered individually or together age at first diagnosis, no therapy, cancer stage 3 and cancer stage 4, and any metastasis into the lymph nodes significantly reduce survival time. 
    4. What are the effects of each factor on survival?  
