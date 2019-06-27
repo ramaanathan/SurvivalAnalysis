@@ -219,21 +219,21 @@ In the case of an exponential distribution, the hazard function or the hazard ra
 #### Weibull Distribution
 $$
 \begin{align}
-pdf: f(t) &= p \lambda^p t^{p-1} e^{-(\lambda t)^p} \\
-cdf: F(t) &= 1 - e^{-(\lambda t)^p} \\
-Survival \ Function: S(t) &= 1 - F(t) = e^{-(\lambda t)^p} \\
-Hazard \ Function: h(t) &= \frac{f(t)}{S(t)} = p \lambda^p t^{p-1} \\
-Cumulative \ Hazard: H(t) &= (\lambda t)^p
+pdf: f(t) &= p \lambda t^{p -1} e^{-(\lambda t^p)} \\
+cdf: F(t) &= 1 - e^{-(\lambda t^p}) \\
+Survival \ Function: S(t) &= 1 - F(t) = e^{-(\lambda t^p)} \\
+Hazard \ Function: h(t) &= \frac{f(t)}{S(t)} = p \lambda  t^{p-1} \\
+Cumulative \ Hazard: H(t) &= (\lambda t^p)
 \end{align}
 $$
 Here, $\lambda > 0$ is the scale parameter and $p > 0$  is the shape parameter. When the shape parameter equals 1, the Weibull distribution reduces to the exponential distribution.  With a weibull distribution, the hazard function is not a constant and is dependent on time.
 
 
 #### Understanding Parametric Modeling in R
-In R, the survival::survreg() function is used for parametric modeling of the survival data. The survreg() function uses the accelerated failure-time (AFT) model, which assumes that the log of failure time, log X, can be expressed as a linear combination of $\mu$ the mean survival time, the covariates and parameters $\gamma_i z_i$ and an error term $\sigma W$, where W is any distribution. 
-$$ log X = \mu + \Sigma_{i}\gamma_{i} z_{i} + \sigma W$$
+In R, the survival::survreg() function is used for parametric modeling of the survival data. The survreg() function uses the accelerated failure-time (AFT) model, which assumes that the log of survival time, log T, can be expressed as a linear combination of $\mu$ the mean survival time, the covariates and parameters $\gamma_i z_i$ and an error term $\sigma W$, where W is any distribution. 
+$$ log T = \mu + \Sigma_{i}\alpha_{i} z_{i} + \sigma W$$
 
-Recall that in an exponential distribution, the pdf $f(t) = \lambda e^{-\lambda t}$, $\lambda$ is the mean number of events within an unit time and $1/\lambda$ is the mean waiting time for the first event to occur. Mapping this to the AFT model above, $\mu$. the mean survival time is nothing but the mean waiting time.  In the output of the survreg function, the value of the intercept corresponds to $\mu$ in the model. So, MLE of the hazard rate, $\lambda$ can be computed as the $exp(-1/\mu)$ or $exp(-1/Intercept)$. The coefficients correspond to $\gamma_i$ and $e^{-\gamma_i}$ corresponds to the hazard ratio.
+Recall that in an exponential distribution, the pdf $f(t) = \lambda e^{-\lambda t}$, $\lambda$ is the mean number of events within an unit time and $1/\lambda$ is the mean waiting time for the first event to occur. Mapping this to the AFT model above, $\mu$. the mean survival time is nothing but the mean waiting time.  In the output of the survreg function, the value of the intercept corresponds to $\mu$ in the model. So, MLE of the hazard rate, $\lambda$ can be computed as the $exp(-1/\mu)$ or $exp(-1/Intercept)$. The coefficients are logarithms of ratios of survival times, so a positive coefficient means longer survival.
 
 
 ### Semi-Parametric Cox Proportional Hazard Regression Model
@@ -806,7 +806,7 @@ surv_wei_conv
 surv_exp <- update(surv_wei,dist="exponential")
 summary(surv_exp)
 lambda <- exp(-1.0 * unname(surv_exp$icoef))
-paste("Constant Hazard Rate for Exponential Distribution withou any predictor:",lambda)
+paste("Constant Hazard Rate for Exponential Distribution without any predictor:",format(lambda,2), " events per year")
 
 # Compare the weibull and exponential distributions
 cmp_wei_exp <- anova(surv_wei, surv_exp)
@@ -893,7 +893,8 @@ arrange_ggsurvplots(list(ggplot_age_surv, ggplot_age_cumhaz), ncol=1)
 
 
 From the survival curves and the cumulative hazard curves plot, it can be observed that the hazard rate for the middle and the old age groups are very similar up to five years and then the hazard rate increases at a faster rate for the older group from 5 to 12 years when it finally becomes steady and remains constant after 12 years for both the groups. 
-In contrast, the hazard rate increases very rapidly durign the 5 to 10 years after diagnosis for the young group.  The median survival time is the highest for the middle age group at 12.21 years and  at 9.36 for the old age group followed by 8.4 years for the young age group. We have 95% confidence that the survival time for the older age group varies between 6.94 and 11.7 years and there is no upper confidence limit for the young and middle age groups.
+
+In contrast, the hazard rate increases very rapidly during the 5 to 10 years after diagnosis for the young group.  The median survival time is the highest for the middle age group at 12.21 years and  at 9.36 for the old age group followed by 8.4 years for the young age group. We have 95% confidence that the survival time for the older age group varies between 6.94 and 11.7 years and there is no upper confidence limit for the young and middle age groups.
 
 **Compare Survival Curves**
 ```{r, echo=FALSE}
@@ -946,7 +947,7 @@ The Schonfeld residuals and the p-value for the corresponding chi-square distrib
 summary(cox_age)
 ```
 
-The p-value of the Wald test for age is less than 0.05 . This indicates that we can reject the null hypothesis that the coefficient for age is zero and conclude that the age is indeed a significant factor in determining the hazard rate for a person with breast cancer. The Cox model equation can then be written as: $$H(t|age) = H_0(t) exp(-0.0265 * age) $$ This equation can be used to compute the cumulative hazard rate for any age. 
+The p-value of the Wald test for age is less than 0.05 . This indicates that we can reject the null hypothesis that the coefficient for age is zero and conclude that the age is indeed a significant factor in determining the hazard rate for a person with breast cancer. The Cox model equation can then be written as: $$H(t|age) = H_0(t) exp(0.0265 * age) $$ This equation can be used to compute the cumulative hazard rate for any age. 
 
 From the Cox PH model, the hazard ratio (exp(coef)) is 1.027 indicating the hazard rate increases by a factor of 1.027 for every increase in age by 1 year. 
 
@@ -955,14 +956,19 @@ From the Cox PH model, the hazard ratio (exp(coef)) is 1.027 indicating the haza
 #Fit Weibull 
 surv_wei_age <- survreg(surv_obj_age ~ agecat, data=brca_clin_age, dist="weibull")
 surv_wei_age_conv <- ConvertWeibull(surv_wei_age)
-surv_wei_age_conv
+summary(surv_wei_age)
 
 #Fit Exponential
 surv_exp_age <- update(surv_wei_age,dist="exponential")
 summary(surv_exp_age)
-lambda <- exp(-1.0 * unname(surv_exp_age$icoef))
-paste("Constant Hazard Rate for Exponential Distribution with Age as predictor:",lambda)
+#lambda <- exp(-1.0 * unname(surv_exp_age$icoef[1]))
+#paste("Constant Hazard Rate for Exponential Distribution with Age as predictor:",lambda)
+```
 
+The survival data is fit with  parametric models using both the exponential and weibull distributions and compared.
+The fitness of the each of these models is verified by checking the loglikelihood values of the models. For both the models,  p-values for the chi-square distribution with one degree of freedom are very small (<0.05) indicating that models are good fits. 
+
+```{r, echo=FALSE}
 # Compare the weibull and exponential distributions
 cmp_wei_exp_age <- anova(surv_wei_age, surv_exp_age)
 p_val <- cmp_wei_exp_age$"Pr(>Chi)"[2]
@@ -971,14 +977,31 @@ deviance_exp <- cmp_wei_exp_age$"-2*LL"[2]
 better_dist <- ifelse(p_val < 0.05, ifelse(deviance_wei < deviance_exp, "weibull", "exp"), "both same")
 paste("The better fit parametric model:",better_dist)
 
-ifelse(better_dist == "weibull", surv_wei_age_conv, summary(surv_exp_age))
-
 ```
 
-The survival data is fit with  parametric models using both the exponential and weibull distributions and compared.
-The fitness of the each of these models is verified by checking the loglikelihood values of the models. For both the models,  p-values for the chi-square distribution with one degree of freedom are very small (<0.05) indicating that models are good fits. 
-Anova is used to compare the two fitted models and it is found that the two model fits are singifincalt different with the model using assuming weibull distribution being the better one with the lower loglikelihood value. 
-From the converted results of the weibull model, the risk of death for the middle age group (ages 40-60) is almost 45% less (HR=0.55) than the risk of death for the younger group (age < 40) and the risk of death for the older age group (age > 60) is slightly higher by 10% compared to the younger age group. Equivalently, the survival time for the middle age group is higher by 46 % (ETR=1.46) for the middle age group when compared with the younger group and the survival time for the older age group is less by 95% when compared with the younger age group.
+Anova is used to compare the two fitted models and it is found that the two model fits are significantly different with the  weibull distribution model being the better fit with the lower loglikelihood value. 
+
+```{r}
+ifelse(better_dist == "weibull", surv_wei_age_conv, summary(surv_exp_age))
+```
+
+From the converted results of the weibull model, the risk of death for the middle age group (ages 40-60) is almost 45% less (HR=0.55) than the risk of death for the younger group (age < 40) and the risk of death for the older age group (age > 60) is slightly higher by 10% compared to the younger age group. 
+
+Equivalently, the survival time for the middle age group is higher by 46 % (ETR=1.46) for the middle age group when compared with the younger group and the survival time for the older age group is less by 95% when compared with the younger age group.
+
+#Age as continuous
+```{r, echo=FALSE}
+#Fit Weibull 
+surv_wei_age_c <- survreg(surv_obj_age ~ age, data=brca_clin_age, dist="weibull")
+surv_wei_age_c_conv <- ConvertWeibull(surv_wei_age_c)
+summary(surv_wei_age_c)
+
+#Fit Exponential
+surv_exp_age <- update(surv_wei_age,dist="exponential")
+summary(surv_exp_age)
+#lambda <- exp(-1.0 * unname(surv_exp_age$icoef[1]))
+#paste("Constant Hazard Rate for Exponential Distribution with Age as predictor:",lambda)
+```
 
 ## Race
 
@@ -1064,7 +1087,8 @@ ggforest(cox_race,data=brca_clin_race)
 #Plot Survival curves for each group
 #ggadjustedcurves(cox_race, var="race", data = brca_clin_race)
 ```
-The p-values of the Wald test for both the races (white and Other) are large indicating that the coefficients for both these predictors are not significantly different from zero. This means that hazards are the same for each race group. This is also evident from the confidence intervals of the hazard ratio as they include the 0 value. So, the Cox model is not significant here. 
+
+The p-values of the Wald test for both the races (white and Other) are large indicating that the coefficients for both these predictors are not significantly different from zero. This means that hazards are the same for each race group. This is also evident from the confidence intervals of the hazard ratio as they include the 0 value. So, the Cox model does not show significant difference in hazards. between the different race groups. 
 
 
 ### Parametric modeling - Race
@@ -1077,26 +1101,14 @@ surv_wei_race_conv
 #Fit Exponential
 surv_exp_race <- update(surv_wei_race,dist="exponential")
 summary(surv_exp_race)
-lambda <- exp(-1.0 * unname(surv_exp_race$icoef))
-paste("Constant Hazard Rate for Exponential Distribution with Age as predictor:",lambda)
-
-# Compare the weibull and exponential distributions
-cmp_wei_exp_race <- anova(surv_wei_race, surv_exp_race)
-p_val <- cmp_wei_exp_race$"Pr(>Chi)"[2]
-deviance_wei <- cmp_wei_exp_race$"-2*LL"[1]
-deviance_exp <- cmp_wei_exp_race$"-2*LL"[2]
-better_dist <- ifelse(p_val < 0.05, ifelse(deviance_wei < deviance_exp, "weibull", "exp"), "both same")
-paste("The better fit parametric model:",better_dist)
-
-ifelse(better_dist == "weibull", surv_wei_race_conv, summary(surv_exp_race))
-
 ```
 
 The survival data is fit with  parametric models using both the exponential and weibull distributions and compared.
 The fitness of the each of these models is verified by checking the loglikelihood values of the models. For both the models,  p-values for the chi-square distribution with one degree of freedom are high (> 0.05) indicating that models are not good fits. 
 
-## Ethnicity
 
+
+## Ethnicity
 
 ### Kaplan Meier Survival Curves for Ethnicity
 ```{r kaplan_ethnicity, echo=FALSE}
@@ -1152,6 +1164,39 @@ cox_ethnicity <- coxph(surv_obj_ethnicity ~ ethnicity, data=brca_clin_ethnicity)
 ```
 The Cox model is not a good fit for this predictor as infinite values get introduced. This may be due to the balanced groups contributing to complete separation with none of the subjects in the hispanic group experiencing an event.
 
+### Parametric Modeling - Ethnicity
+```{r, echo=FALSE}
+#Fit Weibull 
+surv_wei_ethnicity <- survreg(surv_obj_ethnicity ~ ethnicity, data=brca_clin_ethnicity, dist="weibull")
+surv_wei_ethnicity_conv <- ConvertWeibull(surv_wei_ethnicity)
+summary(surv_wei_ethnicity)
+
+#Fit Exponential
+surv_exp_ethnicity <- update(surv_wei_ethnicity,dist="exponential")
+summary(surv_exp_ethnicity)
+#lambda <- exp(-1.0 * unname(surv_exp_age$icoef[1]))
+#paste("Constant Hazard Rate for Exponential Distribution with Age as predictor:",lambda)
+```
+
+The survival data is fit with  parametric models using both the exponential and weibull distributions and compared.
+The fitness of the each of these models is verified by checking the loglikelihood values of the models. For both the models,  p-values for the chi-square distribution with one degree of freedom are very small (<0.05) indicating that models are good fits. 
+
+
+
+```{r, echo=FALSE}
+# Compare the weibull and exponential distributions
+cmp_wei_exp_ethnicity <- anova(surv_wei_ethnicity, surv_exp_ethnicity)
+p_val <- cmp_wei_exp_ethnicity$"Pr(>Chi)"[2]
+deviance_wei <- cmp_wei_exp_ethnicity$"-2*LL"[1]
+deviance_exp <- cmp_wei_exp_ethnicity$"-2*LL"[2]
+better_dist <- ifelse(p_val < 0.05, ifelse(deviance_wei < deviance_exp, "weibull", "exp"), "both same")
+paste("The better fit parametric model:",better_dist)
+
+```
+
+Anova is used to compare the two fitted models and it is found that the two model fits are significantly different with the  weibull distribution model being the better fit with the lower loglikelihood value. 
+
+When the converted weibull values are considered, it is found the hazard rates cannot be modeled correctly resulting in infinite values. 
 
 
 ## Therapy Type
@@ -1255,13 +1300,26 @@ ggadjustedcurves(cox_therapy, var="therapy_type", data = brca_clin_therapy)
 surv_wei_therapy <- survreg(surv_obj_therapy ~ therapy_type, data=brca_clin_therapy, dist="weibull")
 surv_wei_therapy_conv <- ConvertWeibull(surv_wei_therapy)
 surv_wei_therapy_conv
+```
 
+The Weibull model is not a good fit as the p-value of the loglikelihood values of the model is high.
+
+```{r, echo=FALSE}
 #Fit Exponential
-surv_exp_therapy <- update(surv_wei_therapy,dist="exponential")
+# We  cannot consider nested models here as weibull is not a good fit.
+surv_exp_therapy <- survreg(surv_obj_therapy ~ therapy_type, data=brca_clin_therapy,dist="exponential")
 summary(surv_exp_therapy)
 lambda <- exp(-1.0 * unname(surv_exp_therapy$icoef[1]))
-paste("Constant Hazard Rate for Exponential Distribution with therapy as predictor:",lambda)
+paste("Constant Hazard Rate for Exponential Distribution with therapy as predictor:",format(lambda, digits=2) , "events/year")
 
+```
+
+The exponential model is a good fit. Note that survreg() fits accelerated failure models, not proportional hazards models. The coefficients are logarithms of ratios of survival times, so a positive coefficient means longer survival.  
+
+From the p-values of the coefficients, we observe that only the coefficient of the No_Info group is significant. With a coefficient of 1.584, the survival time of the No_info group is increases by a factor of 0.2 (exp(-1.584)) or decreases by a factor of 0.8 as compared to the survival time for the chemotherapy group. Given that the hazard ratio for No_info vs chemotherapy group is found to be 4.87 (exp(-(-1.584))). Bascially, the risk of death for No_info group is almost 5 times higher than the risk of death for subjects given chemotherapy.
+
+
+```{r, include=FALSE}
 # Compare the weibull and exponential distributions
 cmp_wei_exp_therapy <- anova(surv_wei_therapy, surv_exp_therapy)
 p_val <- cmp_wei_exp_therapy$"Pr(>Chi)"[2]
@@ -1269,12 +1327,9 @@ deviance_wei <- cmp_wei_exp_therapy$"-2*LL"[1]
 deviance_exp <- cmp_wei_exp_therapy$"-2*LL"[2]
 better_dist <- ifelse(p_val < 0.05, ifelse(deviance_wei < deviance_exp, "weibull", "exp"), "both same")
 paste("The better fit parametric model:",better_dist)
-
-ifelse(better_dist == "weibull", surv_wei_therapy_conv, summary(surv_exp_therapy))
-
 ```
 
-When the parametric models are fit with weibull and exponential distributions using therapy type as a predictor, the weibull parametric model is not found to be a good fit as the p-value of the loglokehood values of the model is high. From the exponential model, only the "No Info" grop is found to be significant with a p-value < 0.05. The corresponding hazard ratio $(^{coeff} = e^{.584} = 4.87) indicates that the risk of death for the subjects in the "No Info" group is almost 5 times higher than the risk of death for subjects given chemotherapy.
+
 
 ## Cancer Stage (Cancer Stage)
 
@@ -1910,6 +1965,56 @@ ifelse(better_dist == "weibull", surv_wei_all_conv, summary(surv_exp_all))
 
 ## Summary
 The following findings can be summarised:
+
+   1. No predictors:
+      a. Kaplan Meir Results: Median Survival Time: 9.5 years
+   2. Age at first diagnosis:
+      a. Kaplan Meir Results:
+         a. For the young group (age < 40), the initial risk rate is high.
+         b. Survival curves for the middle (40-60) and old age (>60) groups differe significantly.
+         c. Median survival time is 8.4, 12.2, and 9.4 years for the young, middle and old age groups.
+      b. Cox Proportional Hazards Model:
+         a. Age is used as a continuous variable. 
+         b. The risk of death increases slowly by a factor 1.02 for every increase in age by a year.
+      c. Parametric Model:
+         a. Weibull distribution fits the survival data. 
+         b. When age is used as acontinuous varaible, it is found that The risk of death increases slowly by a factor 1.02 for every increase in age by a year.
+         c. When age is used as a categorical varialbe (young, middle, old), it is found that  the risk of death for the middle age group (ages 40-60) is almost 45% less (HR=0.55) than the risk of death for the younger group (age < 40) and the risk of death for the older age group (age > 60) is slightly higher by 10% compared to the younger age group. Equivalently, the survival time for the middle age group is higher by 46 % (ETR=1.46) for the middle age group when compared with the younger group and the survival time for the older age group is less by 95% when compared with the younger age group.
+      
+   3. Race:
+      a. Kaplan Meir Results:
+         No difference in the survival curves between the races
+      b. Parametric Model: Models are not good fits
+      c. Cox Proportional Hazards Model: No significant difference between the races.
+   4. Ethnicity: 
+      a. Kaplan Meir Results: Median age for non-hispanc group is 9.51 years. No sufficient data for other group
+      b. Parametric Model: Not good models
+      c. Cox Proportional Hazards Model: Not a good fit. 
+   5. Therapy Type:
+      a. Kaplan Meir Results: "No Info" group is significantly different from the other therapy groups witht he survival of probability descreasing rapidly with no treatment.
+      b. Parametric Model: Only exponential model fits. The constant hazard rate is 0.04 events/year and risk of death increases by 4.87 with no treatment vs chemotherapy
+      c. Cox Proportional Hazards Model: The risk of death increases by a factor of 4 with no treatmentvs chemotherapy.
+   6. Cancer Stage Diagnosis:
+      a. Kaplan Meir Results:
+      b. Parametric Model:
+      c. Cox Proportional Hazards Model:
+   7. Tumor Stage:
+      a. Kaplan Meir Results:
+      b. Parametric Model:
+      c. Cox Proportional Hazards Model:
+   8. Metastasis Stage:
+      a. Kaplan Meir Results:
+      b. Parametric Model:
+      c. Cox Proportional Hazards Model:
+   9. Lymphnodes Stage:
+      a. Kaplan Meir Results:
+      b. Parametric Model:
+      c. Cox Proportional Hazards Model:
+   10. Combined:
+      a. Kaplan Meir Results:
+      b. Parametric Model:
+      c. Cox Proportional Hazards Model:
+   
 
 ```{r, echo=FALSE}
 cmp_table <- tribble(
