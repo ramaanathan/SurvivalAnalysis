@@ -3,7 +3,7 @@ title: "Survival Analysis of Breast Cancer Data from the TCGA Dataset"
 author: "Ramaa Nathan"
 date: "6/25/2019"
 always_allow_html: yes
-bibliography: SAReferences.bib
+#bibliography: SAReferences.bib
 csl: ieee.csl
 link-citations: true
 output: 
@@ -66,7 +66,7 @@ library(SurvRegCensCov)
 
 #Introduction
 
-Survival Analysis is a branch of statistics to study the  expected duration of time until one or more events occur, such as death in biological systems, failure in mechanical systems,  loan performance in economic systems, time to retirement, time to finding a job in  etc. In case of cancer studies, one of the primary objectives is to assess the time to an event of interest like relapse of cancer, death, etc.  
+Survival Analysis is a branch of statistics to study the  expected duration of time until one or more events occur, such as death in biological systems, failure in meachanical systems,  loan performance in economic systems, time to retirement, time to finding a job in  etc. In case of cancer studies, one of the primary objectives is to assess the time to an event of interest like relapse of cancer, death, etc.  
 
 Survival Analysis is especially helpful in analyzing these studies when one or more of the cohorts do not experience the event and are considered censored for various reasons like death due to a different cause, loss-to-follow-up, end of study, etc.  The basic quantity used to describe time-to-event data is the survival function which is the probability of surviving beyond time x. 
 
@@ -85,7 +85,7 @@ Here are a few questions that we could answer with this study.
 
   
 # Survival Analysis Basics
-Before we start analysing the data, lets first try to understand the basic terminologies related to survival analysis.
+Before we start analyzing the data, lets first try to understand the basic terminologies related to survival analysis.
 
 ## Terminologies
 ### Event Times
@@ -139,13 +139,13 @@ $$ \Lambda = \frac{h_1 (t)}{h_2 (t)} $$
 The hazard ratio can be used to compare two treatment groups. When the hazard ratio is constant and independent of time, the hazards for the two treatment groups are said to be proportional. Basically, the relative risk of the event is constant over time. 
 
 ## Modeling Survival Function
-The survival function can be modeled using non-parametric, parametric, and semi-parametric techniques.
+The survival function can be modeled using non-parametric, parametric, and semi-parametric teachniques.
 
 ### Non-Parametric Methods
 In a non-parametric method, we do not assume any distribution for the survival data and use only empirical information from the data. Kaplan Meier and the Cutler-Ederer are two non-parametric methods used to model the survival curve. Here, we will consider  the most commonly used Kaplan Meier method.
 
 #### Kaplan Meier 
-The Kaplan Meier survival curve is a non-parametric technique for estimating the probability of survival, even in the presence of censoring. In this model, there is the notion of a risk set, which is the set of all individuals who are at risk to have an event at time t. This includes individuals who are known to be alive at time t and those who have the actual event at time t.  
+The Kaplan Meier survival curve is a non-parametric teachnique for estimating the probability of survival, even in the presence of censoring. In this model, there is the notion of a risk set, which is the set of all individuals who are at risk to have an event at time t. This includes individuals who are known to be alive at time t and those who have the actual event at time t.  
 
 In the modeling process, the actual failure times (event times) are first ordered in an increasing order. At each event time $t_k$, the number of subjects still at risk ($n_k$), the number of events ($d_k$), number of censored (lost to follow-up) subjects since the last event time ($n_k-d_k$) are recorded. The risk set does not include the subjects lost to follow-up. The Kaplan Meier Survival probability at time $t_k$ utilizes conditional probability - the probability of surviving at time t, given that the person has survived upto time t.
 $$
@@ -299,7 +299,7 @@ rfns_table %>% kable() %>%
 
 
 # Data Source and Description
- The Cancer Genome Atlas (TCGA) Program [1] provides publicly-available clinical and high-throughput genomic data for thirty-three different types of cancers. For this study of survival analysis of Breast Cancer, we use the Breast Cancer (BRCA) clinical data that  is readily available as BRCA.clinical. This dataset has 3703 columns from which we pick the following columns containing demographic and cancer stage information as important predictors of survival analysis.
+ The Cancer Genome Atlas (TCGA) Program [1] provides publicly-available clinical and high-throughput genomic data for thirty-three different types of cancers. For this study of survival analysis of Breast Cancer, we use the Breast Cancer (BRCA) clinical data that is readily available as BRCA.clinical. This dataset has 3703 columns from which we pick the following columns containing demographic and cancer stage information as important predictors of survival analysis.
  
 ```{r origcolumns, echo=FALSE}
 clinicalDataCols = tibble(
@@ -507,7 +507,14 @@ brca_clin %>% filter(!is.na(age)) %>%
     geom_density(alpha=0.2,fill="#FF6666") +
     geom_vline(aes(xintercept=mean(age)), color="blue", linetype="dashed", size=1) +
     labs(title="Age at First Diagnosis")
-  
+
+brca_clin %>% filter(!is.na(age)) %>% 
+  ggplot(aes(x=age)) +
+    geom_histogram(color="black",fill="white")+
+    #geom_density(alpha=0.2,fill="#FF6666") +
+    geom_vline(aes(xintercept=mean(age)), color="blue", linetype="dashed", size=1) +
+    labs(title="Age at First Diagnosis")
+    
 ```
 
 The average age at first diagnosis seems to 59 years and the distribution of age is mostly symmetrical with a  small bimodal effect. 
@@ -531,6 +538,7 @@ Without considering censoring the mean survival time seems to be less than 2.5 y
 xtabs(~admin.disease_code+patient.vital_status,data=clin) %>% addmargins()
 
 clin <- clin %>%
+  mutate(years_to_event=times/365) %>%
   filter(!is.na(admin.disease_code)) %>%
   arrange(admin.disease_code) 
 
@@ -539,15 +547,17 @@ clin %>%
   ggplot(
        aes(xend = 0, 
            y = index, 
-           x = times, 
+           x = years_to_event, 
            yend = index, 
            colour = admin.disease_code,
            shape = factor(patient.vital_status))) + 
   geom_segment() + 
   geom_point() +
   ggtitle("Right Censoring in TCGA - By Disease") +
-  ylab("Subjects") + 
-  scale_shape_discrete(name = "Status", labels = c("Censored","Event")) 
+  labs(x="Years to Event", y="Subjects") +
+  scale_shape_discrete(name = "Status", labels = c("Censored","Event")) +
+  scale_color_discrete(name = "Disease", labels = c("BRCA (Breast Cancer)", "GBM (Glioblastoma Multiforme)", "OV (Ovarian Cancer)"))
+
 
 ```
 
@@ -577,12 +587,13 @@ brca_clin_age %>%
   geom_segment() + 
   geom_point() +
   ggtitle("Right Censoring in TCGA - BRCA by Age Categories") +
-  ylab("Subjects") + 
-  scale_shape_discrete(name = "Status", labels = c("Censored","Event")) 
+  labs(x="Years to Event", y="Subjects") +
+  scale_shape_discrete(name = "Status", labels = c("Censored","Event")) +
+  scale_color_discrete(name = "Age Categories", labels = c("Young", "Middle", "Old"))
 
 ```
 
-From the contingency table and the plots, it can be observed that less thatn 10% of the subjects are less than 40 years old. The number of subjects in the other two groups are almost equally distributed of which more number of events were observed in the older age group. 
+From the contingency table and the plots, it can be observed that less than 10% of the subjects are less than 40 years old. The number of subjects in the other two groups are almost equally distributed of which more number of events were observed in the older age group. 
 
 ###Censoring and Event Plots  by Race
 ```{r race_plot, echo=FALSE}
@@ -605,8 +616,10 @@ brca_clin_race %>%
   geom_segment() + 
   geom_point() +
   ggtitle("Right Censoring in TCGA - BRCA by Race") +
-  ylab("Subjects") + 
-  scale_shape_discrete(name = "Status", labels = c("Censored","Event")) 
+  labs(x="Years to Event", y="Subjects") +
+  scale_shape_discrete(name = "Status", labels = c("Censored","Event")) +
+  scale_color_discrete(name = "Race", labels = c("Black or African American", "White", "Other"))
+
 
 ```
 
@@ -634,10 +647,14 @@ brca_clin_ethnicity %>%
   geom_segment() + 
   geom_point() +
   ggtitle("Right Censoring in TCGA - BRCA by Ethnicity") +
-  ylab("Subjects") + 
-  scale_shape_discrete(name = "Status", labels = c("Censored","Event")) 
+  labs(x="Years to Event", y="Subjects") +
+  scale_shape_discrete(name = "Status", labels = c("Censored","Event")) +
+  scale_color_discrete(name = "Ethnicity", labels = c("Hispanic or Latino", "Not Hispanic or Latino"))
+
 
 ```
+
+The ethnicity information is missing for approximately 10% of the subjects. Of the rest, the number of Hispanic or Latino patients is very small with 96% of the subjects being non-Hispanic or Latino.
 
 ### Censoring and Event Plots by Therapy Type
 ```{r therapy_plot, echo=FALSE}
@@ -661,10 +678,14 @@ brca_clin_therapy %>%
   geom_segment() + 
   geom_point() +
   ggtitle("Right Censoring in TCGA - BRCA by Therapy Type") +
-  ylab("Subjects") + 
-  scale_shape_discrete(name = "Status", labels = c("Censored","Event")) 
+  labs(x="Years to Event", y="Subjects") +
+  scale_shape_discrete(name = "Status", labels = c("Censored","Event")) +
+  scale_color_discrete(name = "Therapy Type", labels = c("Chemotherapy","Hormone Therapy", "No Info", "Other"))
+
 
 ```
+
+
 
 From the contingency table and the plots, it can be observed that there are most of the subjects are on chemotherapy or hormone therapy with more number of people on chemotherapy. The percentage of events is almost the same in both the groups. 
 
@@ -688,9 +709,11 @@ brca_clin_stage %>%
            shape = factor(vital_status))) + 
   geom_segment() + 
   geom_point() +
-  ggtitle("Right Censoring in TCGA - BRCA by Pathologic Stage") +
-  ylab("Subjects") + 
-  scale_shape_discrete(name = "Status", labels = c("Censored","Event")) 
+  ggtitle("Right Censoring in TCGA - BRCA by Pathologic (Cancer) Stage") +
+  labs(x="Years to Event", y="Subjects") +
+  scale_shape_discrete(name = "Status", labels = c("Censored","Event")) +
+  scale_color_discrete(name = "Cancer Stage", labels = c("Stage1","Stage2","Stage3","Stage4","StageX"))
+
 
 ```
 
@@ -717,9 +740,11 @@ brca_clin_Tstage %>%
            shape = factor(vital_status))) + 
   geom_segment() + 
   geom_point() +
-  ggtitle("Right Censoring in TCGA - BRCA by T stage") +
-  ylab("Subjects") + 
-  scale_shape_discrete(name = "Status", labels = c("Censored","Event")) 
+  ggtitle("Right Censoring in TCGA - BRCA by Tumor (T) stage") +
+  labs(x="Years to Event", y="Subjects") +
+  scale_shape_discrete(name = "Status", labels = c("Censored","Event")) +
+  scale_color_discrete(name = "Tumor Stage", labels = c("t1","t2","t3","t4","tx"))
+
 
 ```
 
@@ -746,9 +771,11 @@ brca_clin_Mstage %>%
            shape = factor(vital_status))) + 
   geom_segment() + 
   geom_point() +
-  ggtitle("Right Censoring in TCGA - BRCA by M stage") +
-  ylab("Subjects") + 
-  scale_shape_discrete(name = "Status", labels = c("Censored","Event")) 
+  ggtitle("Right Censoring in TCGA - BRCA by Metastasis (M) stage") +
+  labs(x="Years to Event", y="Subjects") +
+  scale_shape_discrete(name = "Status", labels = c("Censored","Event")) +
+  scale_color_discrete(name = "Metastatis Stage", labels = c("cm0","m0","m1","mx"))
+
 
 ```
 
@@ -779,13 +806,15 @@ brca_clin_Nstage %>%
            shape = factor(vital_status))) + 
   geom_segment() + 
   geom_point() +
-  ggtitle("Right Censoring in TCGA - BRCA by N stage") +
-  ylab("Subjects") + 
-  scale_shape_discrete(name = "Status", labels = c("Censored","Event")) 
+  ggtitle("Right Censoring in TCGA - BRCA by Lymph Nodes (N) stage") +
+  labs(x="Years to Event", y="Subjects") +
+  scale_shape_discrete(name = "Status", labels = c("Censored","Event")) +
+  scale_color_discrete(name = "Lymph Nodes Stage", labels = c("n0","n1","n2","n3","nx"))
+ 
 
 ```
 
-From the contingency tables and the plots, it can be observed that in almost 50% of the subjects, the cancer has not metasised to the lymph nodes (stage n0). In almost one-third of the subjects, the cancer has metasized to a few lymph nodes (stage n1) and the rest are distriburted between the other groups. The ratio of events to censors increases with the stage number and is highest for stage n4 and stage nx where the status of lymph nodes cannot be assessed. 
+From the contingency tables and the plots, it can be observed that for 50% of the subjects, the cancer has not metasised to the lymph nodes (stage n0) and for 33% of the subjects the cancer has metasised to a few lymph nodes (stage n1). The survival rate decreases with the stage of the tumor from 95% for stage n0 to 55% in stage nX.. 
 
 
 # Data Analysis
@@ -794,6 +823,42 @@ The final dataset contains 1032 rows and 14 columns. We will do the survival ana
 For each of the predictors (or factors), we will first apply the Kaplan Meirs non-parametric model and plot the hazard and survival curves for each group of the categorical variable and extract the median survival time for each group.  We will compare the survival curves between the different levels of each factor and test the hypothesis that the survival curves is the same for each value of the categorical variable. If the curves are found to be significantly different, we will determine the pairs of survival curves that are different.
 
 For each of the predictors, we will also apply the parametric and semi-parametric models to extract more detailed information like hazard ratio which will help us understand the relative risk between the different value of the factors.
+
+## Cancer Types
+```{r}
+# Model the Kaplan Meier Survival Curve
+surv_can_obj <- with(clin, Surv(years_to_event, patient.vital_status))
+surv_can_fit<- survfit(surv_can_obj ~ admin.disease_code,data=clin)
+surv_can_fit
+
+#Plot the survival curves for the different groups
+ggplot_age_surv <- ggsurvplot(surv_can_fit,
+           pval = TRUE,
+           conf.int = TRUE,
+           conf.int.fill="strata",
+           conf.int.alpha=0.2,
+           surv.median.line = "hv",
+           legend="right",
+           title="Survival Curves")
+
+#Plot the cumulative hazard rates for the different groups
+ggplot_age_cumhaz <- ggsurvplot(surv_can_fit,
+           pval = TRUE,
+           conf.int = TRUE,
+           conf.int.fill="strata",
+           conf.int.alpha=0.2,
+           fun="cumhaz",
+           legend="right",
+           title="Cumulative Hazard Curves",
+           risk.table=TRUE,
+           cumevents=TRUE,
+           fontsize=5,
+           tables.height=0.3,
+           surv.plot.height=1)
+
+arrange_ggsurvplots(list(ggplot_age_surv, ggplot_age_cumhaz), ncol=1)
+```
+
 
 
 ##Time to Event only
@@ -814,7 +879,6 @@ ggplot_age_surv <- ggsurvplot(surv_fit,
            conf.int.fill="strata",
            conf.int.alpha=0.2,
            surv.median.line = "hv",
-           risk.table=TRUE,
            legend="right",
            title="Survival Curves")
 
@@ -836,7 +900,7 @@ ggplot_age_cumhaz <- ggsurvplot(surv_fit,
 arrange_ggsurvplots(list(ggplot_age_surv, ggplot_age_cumhaz), ncol=1)
 ```
 
-From the survival and cumulative hazard plots, it can be observed that the hazard of death increases very slowly for the first five years, then increases almost linearly from five to ten years and stabilizes around 12 years. The median survival time is 9.5 years.
+From the survival and cumulative hazard plots, it can be observed that the hazard or risk of death increases very slowly for the first five years, then increases almost linearly from five to ten years and stabilizes around 12 years. The median survival time is 9.5 years.
 
 
 ```{r, include=FALSE}
@@ -910,13 +974,8 @@ ggplot_age_surv <- ggsurvplot(surv_fit_age,
            conf.int.fill="strata",
            conf.int.alpha=0.2,
            surv.median.line = "hv",
-           risk.table=TRUE,
            legend="right",
-           title="Survival Curves by Age Categories",
-           fontsize=2,
-           tables.height=0.3,
-           tables.col="strata",
-           surv.plot.height=1)
+           title="Survival Curves by Age Categories")
 
 #Plot the cumulative hazard rates for the different groups
 ggplot_age_cumhaz <- ggsurvplot(surv_fit_age,
@@ -927,6 +986,8 @@ ggplot_age_cumhaz <- ggsurvplot(surv_fit_age,
            fun="cumhaz",
            legend="right",
            title="Cumulative Hazard Curves by Age Categories",
+           risk.table=TRUE,
+           cumevents=TRUE,
            fontsize=2,
            tables.height=0.3,
            tables.col="strata",
@@ -946,7 +1007,7 @@ In contrast, the hazard rate increases very rapidly during the 5 to 10 years aft
 survdiff(surv_obj_age ~ agecat,data=brca_clin_age)
 ```
 
-When the survival curves for the three groups are compared, it  is found that the log-rank statistic or the MH statistic with a chi square distribution has a large value of 9.2 and a p-vaue of 0.01. Using a confidence limit of 0.05, we have sufficient statistical evidence to reject the null hypothesis and conclude that there is  significant difference in the survival curves for the different groups. 
+When the survival curves for the three groups are compared, it  is found that the log-rank statistic or the MH statistic with a chi square distribution has a large value of 9.2 and a p-value of 0.01. Using a confidence limit of 0.05, we have sufficient statistical evidence to reject the null hypothesis and conclude that there is  significant difference in the survival curves for the different groups. 
 
 **Check for  pairs of curves that are different**
 ```{r, echo=FALSE}
@@ -995,12 +1056,13 @@ The p-value of the Wald test for age is less than 0.05 . This indicates that we 
 
 From the Cox PH model, the hazard ratio (exp(coef)) is 1.027 indicating the hazard rate increases by a factor of 1.027 for every increase in age by 1 year. 
 
-### Parametric Modeling - Age as Catergorical
+### Parametric Modeling - Age as Categorical
 ```{r, echo=FALSE}
 #Fit Weibull 
 surv_wei_age <- survreg(surv_obj_age ~ agecat, data=brca_clin_age, dist="weibull")
 surv_wei_age_conv <- ConvertWeibull(surv_wei_age)
 summary(surv_wei_age)
+
 
 #Fit Exponential
 surv_exp_age <- update(surv_wei_age,dist="exponential")
@@ -1010,11 +1072,12 @@ summary(surv_exp_age)
 ```
 
 The survival data is fit with  parametric models using both the exponential and weibull distributions and compared.
-The fitness of the each of these models is verified by checking the loglikelihood values of the models. For both the models,  p-values for the chi-square distribution with one degree of freedom are very small (<0.05) indicating that models are good fits. 
+The fitness of each of these models is verified by checking the loglikelihood values of the models. For both the models,  p-values for the chi-square distribution with one degree of freedom are very small (<0.05) indicating that models are good fits. 
 
 ```{r, echo=FALSE}
 # Compare the weibull and exponential distributions
 cmp_wei_exp_age <- anova(surv_wei_age, surv_exp_age)
+kable(as.data.frame(cmp_wei_exp_age))
 p_val <- cmp_wei_exp_age$"Pr(>Chi)"[2]
 deviance_wei <- cmp_wei_exp_age$"-2*LL"[1]
 deviance_exp <- cmp_wei_exp_age$"-2*LL"[2]
@@ -1026,12 +1089,14 @@ paste("The better fit parametric model:",better_dist)
 Anova is used to compare the two fitted models and it is found that the two model fits are significantly different with the  weibull distribution model being the better fit with the lower loglikelihood value. 
 
 ```{r}
-ifelse(better_dist == "weibull", surv_wei_age_conv, summary(surv_exp_age))
+ifelse(better_dist == "weibull", print(surv_wei_age_conv), summary(surv_exp_age))
 ```
 
 From the converted results of the weibull model, the risk of death for the middle age group (ages 40-60) is almost 45% less (HR=0.55) than the risk of death for the younger group (age < 40) and the risk of death for the older age group (age > 60) is slightly higher by 10% compared to the younger age group. 
 
 Equivalently, the survival time for the middle age group is higher by 46 % (ETR=1.46) for the middle age group when compared with the younger group and the survival time for the older age group is less by 95% when compared with the younger age group.
+
+
 
 ### Parameter Modeling Age as continuous
 ```{r, echo=FALSE}
@@ -1046,6 +1111,16 @@ summary(surv_exp_age)
 #lambda <- exp(-1.0 * unname(surv_exp_age$coefficients[1]))
 #paste("Constant Hazard Rate for Exponential Distribution with Age as predictor:",round(lambda,2), " events/year")
 ```
+
+
+**Analyse the weibull distribution using Age as a continuous variable)**
+```{r}
+age_wei <- survreg(surv_obj_age ~ age, data=brca_clin_age, dist="weibull")
+ConvertWeibull(age_wei)
+```
+
+We get the exact same results as was obtained with Cox PH model. This further validates the fits of the models. 
+
 
 ## Race
 
@@ -1099,7 +1174,7 @@ survdiff(surv_obj_race~race,data=brca_clin_race)
 
 From the survival curves plot, it can be observed that the survival curves for both the races - white and black or african-american are very similar. The probablity of survival steadily reduces during the first 12 years and then remains flat. The median survival time for the both the races is the same at 9.5 years. This means that 50% of the people are expected to survive after 9.5 years since first diagnosis. 
 
-From the output of survdiff, it can be seen that the log-rank statistic or the MH statistic with a chi square distribution has a value close to 1 and a p-vaue of 0.8. Using a confidence limit of 0.05, we do not have sufficient evidence to reject the null hypothesis and conclude that there is no difference in survival rates for the different groups.
+From the output of survdiff, it can be seen that the log-rank statistic or the MH statistic with a chi square distribution has a value close to 1 and a p-value of 0.8. Using a confidence limit of 0.05, we do not have sufficient evidence to reject the null hypothesis and conclude that there is no difference in survival rates for the different groups.
 ```
 
 ### Cox Proportional Hazard Model for Race
@@ -1140,7 +1215,7 @@ The p-values of the Wald test for both the races (white and Other) are large ind
 #Fit Weibull 
 surv_wei_race <- survreg(surv_obj_race ~ race, data=brca_clin_race, dist="weibull")
 surv_wei_race_conv <- ConvertWeibull(surv_wei_race)
-surv_wei_race_conv
+summary(surv_wei_race)
 
 #Fit Exponential
 surv_exp_race <- update(surv_wei_race,dist="exponential")
@@ -1148,7 +1223,7 @@ summary(surv_exp_race)
 ```
 
 The survival data is fit with  parametric models using both the exponential and weibull distributions and compared.
-The fitness of the each of these models is verified by checking the loglikelihood values of the models. For both the models,  p-values for the chi-square distribution with one degree of freedom are high (> 0.05) indicating that models are not good fits. 
+The fitness of each of these models is verified by checking the loglikelihood values of the models. For both the models,  p-values for the chi-square distribution with one degree of freedom are high (> 0.05) indicating that models are not good fits. 
 
 
 
@@ -1223,7 +1298,7 @@ summary(surv_exp_ethnicity)
 ```
 
 The survival data is fit with  parametric models using both the exponential and weibull distributions and compared.
-The fitness of the each of these models is verified by checking the loglikelihood values of the models. For both the models,  p-values for the chi-square distribution with one degree of freedom are very small (<0.05) indicating that models are good fits. 
+The fitness of each of these models is verified by checking the loglikelihood values of the models. For both the models,  p-values for the chi-square distribution with one degree of freedom are very small (<0.05) indicating that models are good fits. 
 
 
 
@@ -1287,6 +1362,8 @@ arrange_ggsurvplots(list(ggplot_therapy_surv, ggplot_therapy_cumhaz), ncol=1)
 #Check for Difference between the survival curves
 survdiff(surv_obj_therapy ~ factor(therapy_type,exclude=NULL),data=brca_clin_therapy)
 surv_pairdiff_therapy <- pairwise_survdiff(Surv(years_to_event,vital_status)~therapy_type,data=brca_clin)
+surv_pairdiff_therapy
+
 symnum(surv_pairdiff_therapy$p.value, cutpoints = c(0, 0.0001, 0.001, 0.01, 0.05, 0.1, 1),
    symbols = c("****", "***", "**", "*", "+", " "),
    abbr.colnames = FALSE, na = "")
@@ -1294,7 +1371,7 @@ symnum(surv_pairdiff_therapy$p.value, cutpoints = c(0, 0.0001, 0.001, 0.01, 0.05
 
 From the plots of the survival curves and the cumulative hazard rate, it can be observed that there is a big difference in survival and hazard rates between the groups of subjects administered some form of therapy and the group with no therapy reported. The hazard rate is very low  when the subjects are administered any type of therapy but the hazard rate is very high for subjects when no therapy is reported. The median survival rate is not even reached for the therapy related groups which indicates that more than half of the subjects are alive when the probability of survival is 50%.  But, the median survival time is less than 7 years with no therapy. 
 
-When the survival curves are compared, it can be seen that the log-rank statistic or the MH statistic with  a chi square distribution with a 3 degrees of freedom has a very high value of 44  and a p-value < 0.01. Using a confidence limit of 0.05, we have sufficient evidence to reject the null hypothesis and conclude that there is significant difference in the survival curves between the three groups. Further, by doing a pairwise comparison of the survival curves, the survival curve for the "No info" group is found to be significantly differnet from the curves for the other two groups. Basically, this indicates that the survival time is significantly different between subjects reciveing therapy and no therapy.
+When the survival curves are compared, it can be seen that the log-rank statistic or the MH statistic with  a chi square distribution with a 3 degrees of freedom has a very high value of 44  and a p-value < 0.01. Using a confidence limit of 0.05, we have sufficient evidence to reject the null hypothesis and conclude that there is significant difference in the survival curves between the three groups. Further, by doing a pairwise comparison of the survival curves, the survival curve for the "No info" group is found to be significantly different from the curves for the other two groups. Basically, this indicates that the survival time is significantly different between subjects receiving therapy and no therapy.
 
 
 ### Cox Proportional Hazard (PH) Model for Therapy
@@ -1343,7 +1420,7 @@ ggadjustedcurves(cox_therapy, var="therapy_type", data = brca_clin_therapy)
 #Fit Weibull 
 surv_wei_therapy <- survreg(surv_obj_therapy ~ therapy_type, data=brca_clin_therapy, dist="weibull")
 surv_wei_therapy_conv <- ConvertWeibull(surv_wei_therapy)
-surv_wei_therapy_conv
+summary(surv_wei_therapy)
 ```
 
 The Weibull model is not a good fit as the p-value of the loglikelihood values of the model is high.
@@ -1360,12 +1437,13 @@ paste("Constant Hazard Rate for Exponential Distribution with therapy as predict
 
 The exponential model is a good fit. Note that survreg() fits accelerated failure models, not proportional hazards models. The coefficients are logarithms of ratios of survival times, so a positive coefficient means longer survival.  
 
-From the p-values of the coefficients, we observe that only the coefficient of the No_Info group is significant. With a coefficient of 1.584, the survival time of the No_info group is increases by a factor of 0.2 (exp(-1.584)) or decreases by a factor of 0.8 as compared to the survival time for the chemotherapy group. Given that the hazard ratio for No_info vs chemotherapy group is found to be 4.87 (exp(-(-1.584))). Bascially, the risk of death for No_info group is almost 5 times higher than the risk of death for subjects given chemotherapy.
+From the p-values of the coefficients, we observe that only the coefficient of the No_Info group is significant. With a coefficient of 1.584, the survival time of the No_info group increases by a factor of 0.2 (exp(-1.584)) or decreases by a factor of 0.8 as compared to the survival time for the chemotherapy group. Given that the hazard ratio for No_info vs chemotherapy group is found to be 4.87 (exp(-(-1.584))). Bascially, the risk of death for No_info group is almost 5 times higher than the risk of death for subjects given chemotherapy.
 
 
 ```{r, include=FALSE}
 # Compare the weibull and exponential distributions
 cmp_wei_exp_therapy <- anova(surv_wei_therapy, surv_exp_therapy)
+cmp_wei_exp_therapy
 p_val <- cmp_wei_exp_therapy$"Pr(>Chi)"[2]
 deviance_wei <- cmp_wei_exp_therapy$"-2*LL"[1]
 deviance_exp <- cmp_wei_exp_therapy$"-2*LL"[2]
@@ -1418,17 +1496,19 @@ arrange_ggsurvplots(list(ggplot_stage_surv, ggplot_stage_cumhaz), ncol=1)
 
 #Check for Difference between the survival curves
 survdiff(surv_obj_stage ~ factor(pathologic_stage),data=brca_clin_stage)
+
 brca_clin_stage_2 <- brca_clin_stage %>%
   filter(!is.na(pathologic_stage)) %>%
   mutate(pathologic_stage = factor(pathologic_stage))
 
 surv_pairdiff_stage <- pairwise_survdiff(Surv(years_to_event,vital_status)~pathologic_stage,data=brca_clin)
+surv_pairdiff_stage
 symnum(surv_pairdiff_stage$p.value, cutpoints = c(0, 0.0001, 0.001, 0.01, 0.05, 0.1, 1),
    symbols = c("****", "***", "**", "*", "+", " "),
    abbr.colnames = FALSE, na = "")
 ```
 
-From the survival curves and the cumilative hazard curves, it can be observed that the hazard rate steadily increases with increase in the identified cancer stage number. Correspondingly, the median survival time steadily reduces from 10.8 years for stage 1 to 3.7 years for stage 4.
+From the survival curves and the cumulative hazard curves, it can be observed that the hazard rate steadily increases with increase in the identified cancer stage number. Correspondingly, the median survival time steadily reduces from 10.8 years for stage 1 to 3.7 years for stage 4.
 
 On comparison of the survival curves, it is found that the log rank statistic has a chi-square distribution with 4 degress of freedom and has a value of 32.9 and a very small p-value that is less than 0.01. Using a significance of 0.05 and with a p-value < 0.01,  we have sufficient statistical evidence to reject the null hypothesis and conclude that the survival curves for the different stages are different from each other. 
 
@@ -1487,11 +1567,12 @@ paste("Constant Hazard Rate for Exponential Distribution with stage as predictor
 
 
 The survival data is fit with  parametric models using both the exponential and weibull distributions and compared.
-The fitness of the each of these models is verified by checking the loglikelihood values of the models. For both the models,  p-values for the chi-square distribution with one degree of freedom are very small (<0.05) indicating that models are good fits. 
+The fitness of each of these models is verified by checking the loglikelihood values of the models. For both the models,  p-values for the chi-square distribution with one degree of freedom are very small (<0.05) indicating that models are good fits. 
 
 ```{r, echo=FALSE}
 # Compare the weibull and exponential distributions
 cmp_wei_exp_stage <- anova(surv_wei_stage, surv_exp_stage)
+cmp_wei_exp_stage
 p_val <- cmp_wei_exp_stage$"Pr(>Chi)"[2]
 deviance_wei <- cmp_wei_exp_stage$"-2*LL"[1]
 deviance_exp <- cmp_wei_exp_stage$"-2*LL"[2]
@@ -1502,7 +1583,7 @@ ifelse(better_dist == "weibull", print(surv_wei_stage_conv), summary(surv_exp_st
 
 ```
 
-Anova is used to compare the two fitted models and it is found that the two model fits are significantly different and the model using assuming weibull distribution is the better one with the lower loglikelihood value. 
+Anova is used to compare the two fitted models and it is found that the two model fits are significantly different and the model with weibull distribution is the better one with the lower loglikelihood value. 
 
 From the converted results of the weibull model, the risk of death increases with increase in the cancer stage number. When compared with the risk of death for stage 1, the risk is higher by a factor of 1.3 for stage 2, by a factor of 2.5 for stage 3 and by a factor of 6.6 for stage 4.  Equivalently, the survival time for the stage 2 group reduces by 16% for stage 2, by 45% for stage 3 and by 70% for stage 4 when compared with the survival time length for stage 1. 
 
@@ -1556,7 +1637,7 @@ symnum(surv_pair_Tstage$p.value, cutpoints = c(0, 0.0001, 0.001, 0.01, 0.05, 0.1
    abbr.colnames = FALSE, na = "")
 ```
 From the survival time and cumulative hazard plots, it can be observed that the probability of survival decreases gradually with time and increase in tumor classification type. The median survival time is an average of 10 years for the first three tumor stages and reduces to 4.5 years for the t4 stage.
-When the survival curves for the different tumor stages are compares, the difference in the curves is not found to be significantly different.
+When the survival curves for the different tumor stages are compared, the difference in the curves is not found to be significantly different.
 
 
 
@@ -1613,7 +1694,7 @@ paste("Constant Hazard Rate for Exponential Distribution with Tstage as predicto
 ```
 
 The survival data is fit with  parametric models using both the exponential and weibull distributions.
-The fitness of the each of these models is first verified by checking the loglikelihood values of the models. For both the models,  p-values for the chi-square distribution with one degree of freedom are high (> 0.05) indicating that both the parametric models are not good fits. 
+The fitness of each of these models is first verified by checking the loglikelihood values of the models. For both the models,  p-values for the chi-square distribution with one degree of freedom are high (> 0.05) indicating that both the parametric models are not good fits. 
 
 ```{r, include=FALSE}
 # Compare the weibull and exponential distributions
@@ -1674,6 +1755,7 @@ arrange_ggsurvplots(list(ggplot_Mstage_surv, ggplot_Mstage_cumhaz), ncol=1)
 #Check for Difference between the survival curves
 survdiff(surv_obj_Mstage ~ factor(pathologyMstage),data=brca_clin_Mstage)
 surv_pair_Mstage <- pairwise_survdiff(Surv(years_to_event,vital_status)~pathologyMstage,data=brca_clin)
+surv_pair_Mstage
 symnum(surv_pair_Mstage$p.value, cutpoints = c(0, 0.0001, 0.001, 0.01, 0.05, 0.1, 1),
    symbols = c("****", "***", "**", "*", "+", " "),
    abbr.colnames = FALSE, na = "")
@@ -1681,13 +1763,13 @@ symnum(surv_pair_Mstage$p.value, cutpoints = c(0, 0.0001, 0.001, 0.01, 0.05, 0.1
 
 From the cumulative hazard curves,it can be observed that for patients with no metastasis (M0 and CM0 stages), the hazard rate is very low for the initial five years and then linearly increases with time and becomes steady after 12 years. The median survival time in this case is around 10 years. When there is metastasis, the hazard rate is very high during the first five years and then becomes steady. The median survival time reduces to 3.7 years in this case. 
 
-But when the survival curves for the different stages are statistically compared, the log rank statistic for a chi-square distribution with 2 degress of freedom has a value of 7.6 and a  p-value of 0.05. Using a significance of 0.05,  we do not have very strong statistical evidence to reject the null hypothesis and conclude that the survival curves for the different stages may not be signifcantly different from each other. Still, when the survival curves are compared with each other using a family-wise p-value, the survival curves for stagem0 and m1 are found to be  different. 
+But when the survival curves for the different stages are statistically compared, the log rank statistic for a chi-square distribution with 2 degress of freedom has a value of 7.6 and a  p-value of 0.05. Using a significance of 0.05,  we do not have very strong statistical evidence to reject the null hypothesis and conclude that the survival curves for the different stages may not be significantly different from each other. Still, when the survival curves are compared with each other using a family-wise p-value, the survival curves for stagem0 and m1 are found to be  different. 
 
 ### Cox Proportional Hazard (PH) Model for Pathologic Stage (M Stage)
 ```{r, echo=FALSE}
 cox_Mstage <- coxph(surv_obj_Mstage ~ pathologyMstage, data=brca_clin_Mstage)
 ```
-Fitting the Cox model with the metastasis stage as the predictor introduces inifinite values and so the Cox model is not considered as a good fit.
+Fitting the Cox model with the metastasis stage as the predictor introduces infinite values and so the Cox model is not considered to be a  good fit.
 
 
 ### Parametric modeling - Mstage
@@ -1705,7 +1787,7 @@ paste("Constant Hazard Rate for Exponential Distribution with Mstage as predicto
 ``` 
 
 The survival data is fit with  parametric models using both the exponential and weibull distributions and compared.
-The fitness of the each of these models is verified by checking the loglikelihood values of the models. For both the models,  p-values for the chi-square distribution with one degree of freedom are high (> 0.05) indicating that models are not good fits. 
+The fitness of each of these models is verified by checking the loglikelihood values of the models. For both the models,  p-values for the chi-square distribution with one degree of freedom are high (> 0.05) indicating that models are not good fits. 
 
 ```{r, include=FALSE}
 # Compare the weibull and exponential distributions
@@ -1766,12 +1848,13 @@ arrange_ggsurvplots(list(ggplot_Nstage_surv, ggplot_Nstage_cumhaz), ncol=1)
 #Check for Difference between the survival curves
 survdiff(surv_obj_Nstage ~ factor(pathologyNstage),data=brca_clin_Nstage)
 surv_pair_Nstage <- pairwise_survdiff(Surv(years_to_event,vital_status)~pathologyNstage,data=brca_clin)
+surv_pair_Nstage
 symnum(surv_pair_Nstage$p.value, cutpoints = c(0, 0.0001, 0.001, 0.01, 0.05, 0.1, 1),
    symbols = c("****", "***", "**", "*", "+", " "),
    abbr.colnames = FALSE, na = "")
 ```
 
-From the survival and cumulative hazard curves, it can be observed that the hazard rates increase with increase in the number of lymph nodes (represented by the stage numbers) that the tumor cells are spread to. For the first years, the hazard rates are very similar for the different stages but differ greatly after that. The median survival time decreases from 11.7 to 6.5 from stage N0 to stage NX. 
+From the survival and cumulative hazard curves, it can be observed that the hazard rates increase with increase in the number of lymph nodes (represented by the stage numbers) that the tumor cells are spread to. For the first five years, the hazard rates are very similar for the different stages but differ greatly after that. The median survival time decreases from 11.7 to 6.5 from stage N0 to stage NX. 
 
 When the survival curves for the different N stages are compared, the log-rank or MH_statistic for a chi-square distribution with 4 degrees of freedom is 35.1 with a very small p-value. So, we have sufficient statistical evidence to reject the null hypothesis that the survival curves are all the same and conclude that the survival curves are significantly different for the different N stages. 
 When the survival curves are compared with each other in pairs, it is found that the survival curve for stage n0 is significantly different from the curves for all other stages. 
@@ -1832,11 +1915,12 @@ paste("Constant Hazard Rate for Exponential Distribution with Nstage as predicto
 ```
 
 The survival data is fit with  parametric models using both the exponential and weibull distributions and compared.
-The fitness of the each of these models is verified by checking the loglikelihood values of the models. For both the models,  p-values for the chi-square distribution with one degree of freedom are very small (<0.05) indicating that models are good fits. 
+The fitness of each of these models is verified by checking the loglikelihood values of the models. For both the models,  p-values for the chi-square distribution with one degree of freedom are very small (<0.05) indicating that models are good fits. 
 
 ```{r, echo=FALSE}
 # Compare the weibull and exponential distributions
 cmp_wei_exp_Nstage <- anova(surv_wei_Nstage, surv_exp_Nstage)
+cmp_wei_exp_Nstage
 p_val <- cmp_wei_exp_Nstage$"Pr(>Chi)"[2]
 deviance_wei <- cmp_wei_exp_Nstage$"-2*LL"[1]
 deviance_exp <- cmp_wei_exp_Nstage$"-2*LL"[2]
@@ -1858,7 +1942,7 @@ The final step is to consider all the predictors to determine the effect of each
 We had considered nine predictors - age at first diagnosis, race, ethnicity, therapy_type, cancer stage, tumor stage, metastasis stage, and lymph node stage. 
 Of these race, ethnicity, and metastasis stage were not found to be significant. So, we drop them from our final list. 
 
-Cancer_stage is jointly determined by the tumor (T) stage, metastasis (M) stage, and lymph node (N) stage. So, in any linear model, we cannot incldue the overall cancer stage and the individual T,M,N stages as this will result in multicollinearity. So, we consider two separate models, one with only cancer stage and the other with the individual T,M,N stages.
+Cancer_stage is jointly determined by the tumor (T) stage, metastasis (M) stage, and lymph node (N) stage. So, in any linear model, we cannot include the overall cancer stage and the individual T,M,N stages as this will result in multicollinearity. So, we consider two separate models, one with only cancer stage and the other with the individual T,M,N stages.
 
 ```{r, include=FALSE}
 # surv_obj_all <- with(brca_clin, Surv(years_to_event, vital_status))
@@ -1912,9 +1996,10 @@ H_0(t) exp(0.023*age + 1.18*No\_info + 1.09*stage3 + 1.685*stage4 + 0.97*stageX)
 $$ 
 This equation can be used to compute the cumulative hazard rate for new values. 
 
-Considering only the signifcant predictors, the hazard ratio (exp(coef)) values are used to summarise the following findings. Recall that while analysing each of the predictors, all the other predictors in the model are accounted for by using their mean values.  
-   1. For every one additional year of age, the risk of death increases by a factor of 1.02.
-   2. Compared to subjects on chemotherapy treatment, the risk of death for subjects with No info on the therapy increses by a factor 3.25
+Considering only the significant predictors, the hazard ratio (exp(coef)) values are used to summarise the following findings. Recall that while analyzing each of the predictors, all the other predictors in the model are accounted for by using their mean values. 
+
+   1. For every increase in age at diagnosis by one year, the risk of death increases by a factor of 1.02.
+   2. Compared to subjects on chemotherapy treatment, the risk of death for subjects with No info on the therapy increases by a factor of 3.25
    4. Compared to subjects diagnosed with stage 1 cancer, the risk of death increases by a factor of 2.98 for subjects diagnosed with lymph node stage 3  
    5. Compared to subjects diagnosed with stage 1 cancer, the risk of death increases by a factor of 5.39 for subjects diagnosed with lymph node stage 4  
    6. Compared to subjects diagnosed with stage 1 cancer, the risk of death increases by a factor of 2.64 for subjects diagnosed with lymph node stage X (or not assessed) cancer 
@@ -1945,7 +2030,7 @@ plot(cox_all_2$residuals)
 ```
 
 
-The base hazard model corresponds to age=0, treatment type of chemotherapy, tumor stage 1 and lymph node stage 0 (n0 - no cancer in lymph nodes). Of the other predictors, the coefficients for  age, therapy_type of "No info", lymph node stages 3,4, and X are found to be significant.
+The base hazard model corresponds to age=0, treatment type of chemotherapy, tumor stage 1 and lymph node stage 0 (n0 - no cancer in lymph nodes). Of the other predictors, the coefficients for  age, therapy_type of "No info", lymph node stages n2, n3, and nX are found to be significant.
 
 The Cox model equation can then be written as: 
  $$  H(t|age,chemo,hormone,no_info, other,t1,t2,t3,t4,tX,n0,n1,n2,n3,nX) = 
@@ -1953,9 +2038,10 @@ H_0(t) exp(0.02*age + 1.38*No\_info + 1.52*n2 + 1.80*n3 + 0.91*stageX)
 $$ 
 This equation can be used to compute the cumulative hazard rate for new values. 
 
-Considering only the signifcant predictors, the hazard ratio (exp(coef)) values are used to summarise the following findings. Recall that while analysing ech of the predictors, all the other predictors in the model are accounted for by using their mean values.  
-   1. For every one additional year of age, the risk of death increases by a factor of 1.02.
-   2. Compared to subjects on chemotherapy treatment, the risk of death for subjects with No info on the therapy increses by a factor of 3.96
+Considering only the significant predictors, the hazard ratio (exp(coef)) values are used to summarise the following findings. Recall that while analyzing each of the predictors, all the other predictors in the model are accounted for by using their mean values. 
+
+   1. For every increase in age at diagnosis by one year, the risk of death increases by a factor of 1.02.
+   2. Compared to subjects on chemotherapy treatment, the risk of death for subjects with No info on the therapy increases by a factor of 3.96
    4. Compared to subjects diagnosed with stage 1 cancer, the risk of death increases by a factor of 4.6 for subjects diagnosed with stage n2
    5. Compared to subjects diagnosed with stage 1 cancer, the risk of death increases by a factor of 5.9 for subjects diagnosed with stage n3
    6. Compared to subjects diagnosed with stage 1 cancer, the risk of death increases by a factor of 2.5 for subjects diagnosed with stage nX (or not assessed) cancer 
@@ -2049,7 +2135,7 @@ The following findings can be summarised:
       c. Parametric Model:
          a. Weibull distribution fits the survival data. 
          b. When age is used as acontinuous varaible, it is found that The risk of death increases slowly by a factor 1.02 for every increase in age by a year.
-         c. When age is used as a categorical varialbe (young, middle, old), it is found that  the risk of death for the middle age group (ages 40-60) is almost 45% less (HR=0.55) than the risk of death for the younger group (age < 40) and the risk of death for the older age group (age > 60) is slightly higher by 10% compared to the younger age group. Equivalently, the survival time for the middle age group is higher by 46 % (ETR=1.46) for the middle age group when compared with the younger group and the survival time for the older age group is less by 95% when compared with the younger age group.
+         c. When age is used as a categorical varialbe (young, middle, old), it is found that  the risk of death for the middle age group (ages 40-60) is almost 45% less (HR=0.55) than the risk of death for the younger group (age < 40) and the risk of death for the older age group (age > 60) is slightly higher by 10% compared to the younger age group. Equivalently, the survival time for the middle age group is higher by 46 % (ETR=1.46) for the middle age group when compared with the younger group and the survival time for the older age group is less by 5% when compared with the younger age group.
       
    3. Race:
       a. Kaplan Meir Results:
@@ -2061,7 +2147,7 @@ The following findings can be summarised:
       b. Parametric Model: Not good models
       c. Cox Proportional Hazards Model: Not a good fit. 
    5. Therapy Type:
-      a. Kaplan Meir Results: "No Info" group is significantly different from the other therapy groups witht he survival of probability descreasing rapidly with no treatment.
+      a. Kaplan Meir Results: "No Info" group is significantly different from the other therapy groups with the survival of probability descreasing rapidly with no treatment.
       b. Parametric Model: Only exponential model fits. The constant hazard rate is 0.04 events/year and risk of death increases by 4.87 with no treatment vs chemotherapy
       c. Cox Proportional Hazards Model: The risk of death increases by a factor of 4 with no treatmentvs chemotherapy.
    6. Cancer Stage Diagnosis:
@@ -2084,14 +2170,16 @@ The following findings can be summarised:
       c. Cox Proportional Hazards Model: Cox model is a good fit and coefficients for all stages are significant. Hazard ratio and hence the risk of death increases for each stage relative to the stage with no metastasis.  When compared to the group of subjects with no metastasis in the lymph nodes (stage n0), the risk of death increases by a factor of 1.95 when the metastasis increases to 1-3 lymph nodes (stage n1), increases by a factor of 3.15 when the metastasis increases to 4-9 lymph nodes (stage n2) and by a factor of 5.22 when metastasis increases to 10 or more lymph nodes (stage n3). 
    10. Combined:
       a. Cox Proportional Hazards Model (Age, Therapy, Cancer Stage): The base hazard model corresponds to age=0, treatment type of chemotherapy, and cancer stage 1. Of the other predictors, the coefficients for  age, therapy_type of "No info", cancer stages of 3,4, and X are found to be significant. 
+      
          i. For every one additional year of age, the risk of death increases by a factor of 1.02.
          ii. Compared to subjects on chemotherapy treatment, the risk of death for subjects with No info on the therapy increases by a factor 3.25
          iii. Compared to subjects diagnosed with stage 1 cancer, the risk of death increases by a factor of 2.98 for subjects diagnosed with lymph node stage 3
          iv. Compared to subjects diagnosed with stage 1 cancer, the risk of death increases by a factor of 5.39 for subjects diagnosed with lymph node stage 4 
          v. Compared to subjects diagnosed with stage 1 cancer, the risk of death increases by a factor of 2.64 for subjects diagnosed with lymph node stage X (or not assessed) cancer 
-      b. Cox Proportional Hazards Model (Age, Therapy, Lymph Nodes Stage): The base hazard model corresponds to age=0, treatment type of chemotherapy, tumor stage 1 and lymph node stage 0 (n0 - no cancer in lymph nodes). Of the other predictors, the coefficients for  age, therapy_type of "No info", lymph node stages 3,4, and X are found to be significant.
+      b. Cox Proportional Hazards Model (Age, Therapy, Lymph Nodes Stage): The base hazard model corresponds to age=0, treatment type of chemotherapy, tumor stage 1 and lymph node stage 0 (n0 - no cancer in lymph nodes). Of the other predictors, the coefficients for  age, therapy_type of "No info", lymph node stages n2,n3, and nX are found to be significant.
+      
          i. For every one additional year of age, the risk of death increases by a factor of 1.02.
-         ii. Compared to subjects on chemotherapy treatment, the risk of death for subjects with No info on the therapy increses by a factor of 3.96
+         ii. Compared to subjects on chemotherapy treatment, the risk of death for subjects with No info on the therapy increases by a factor of 3.96
          iii. Compared to subjects diagnosed with stage 1 cancer, the risk of death increases by a factor of 4.6 for subjects diagnosed with stage n2
          iv. Compared to subjects diagnosed with stage 1 cancer, the risk of death increases by a factor of 5.9 for subjects diagnosed with stage n3
          v. Compared to subjects diagnosed with stage 1 cancer, the risk of death increases by a factor of 2.5 for subjects diagnosed with stage nX (or not assessed) cancer  
