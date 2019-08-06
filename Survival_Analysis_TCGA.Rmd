@@ -3,8 +3,8 @@ title: "Survival Analysis of Breast Cancer Data from the TCGA Dataset"
 author: "Ramaa Nathan"
 date: "6/25/2019"
 always_allow_html: yes
-#bibliography: SAReferences.bib
-csl: ieee.csl
+bibliography: SAReferences.bib
+#csl: ieee.csl
 link-citations: true
 output: 
   html_document:
@@ -92,7 +92,7 @@ Before we start analyzing the data, lets first try to understand the basic termi
 Event times often are useful endpoints in clinical trials. Examples include survival time from onset of diagnosis, time until progression from one stage of disease to another, and time from surgery until hospital discharge. In each case, time is measured from study entry until the event occurs. 
 
 ### Censoring 
-With an endpoint that is based on an event time, there always is the chance of censoring. An event time is censored if there is some amount of follow-up on a subject and the event is not observed during the study period. There are different types of censoring [@clin_trials]
+With an endpoint that is based on an event time, there always is the chance of censoring. An event time is censored if there is some amount of follow-up on a subject and the event is not observed during the study period. There are different types of censoring [@clinicalTrials]
 
 #### Right Censoring 
 Right censoring occurs when an event is not observed because of loss-to-follow-up, death from a cause other than the trial endpoint, study termination, and other reasons unrelated to the endpoint of interest. This occurs frequently in studies of survival. There are three types of right censoring: 
@@ -532,10 +532,22 @@ brca_clin %>% dplyr::select(age) %>% summary()
 
 Without considering censoring the mean survival time seems to be less than 2.5 years. This is not helpful information as censoring information is an important component of survival data.  The TCGA clinical data set is a survival dataset containing  right censor information. We will first visualize the distribution of the right censor data by different categories.  The Censoring Event plots here were inspired by a [workshop on Survival Analysis](https://github.com/emsweene/New_York_R_Survival_Analysis_Workshop).
 
-###Censoring and Event Plots  by Disease
+
+```{r, echo=FALSE}
+#use age as a continuous variable
+anova(lm(age ~ therapy_type, data=brca_clin))
+```
+
+
+### Censoring and Event Plots  by Disease
+
 ```{r disease_plot, echo=FALSE}
 #Contingency table
-xtabs(~admin.disease_code+patient.vital_status,data=clin) %>% addmargins()
+#xtabs(~admin.disease_code+patient.vital_status,data=clin) %>% addmargins()
+byDisease <- xtabs(~admin.disease_code+patient.vital_status,data=clin) %>% addmargins()
+#names(byDisease) <- c("Disease", "Vital Status", "Total")
+byDisease %>% knitr::kable() %>%
+  kable_styling(full_width=F,position="float_left",bootstrap_options=c("bordered")) 
 
 clin <- clin %>%
   mutate(years_to_event=times/365) %>%
@@ -564,9 +576,8 @@ clin %>%
 From the contingency table and the plots comparing the diseases of BRCA (breast cancer), GBM (Glioblastoma Multiforme) and OV (Ovarian Cancer), it can be observed that less that almost 50% of the cases are for Breast Cancer and the rest are almost equally split between ovarian and GBM. In these, 10% of the subjects with Breast cancer, 75% of the subjects with GBM and 50% of the subjects with ovarian cancer did not survive (had events). 
 
 
-###Censoring and Event Plots  by Age Category
+### Censoring and Event Plots  by Age Category
 
-, 
 ```{r age_plot, echo=FALSE}
 #Contingency table
 xtabs(~agecat+vital_status,data=brca_clin) %>% addmargins()
@@ -832,7 +843,7 @@ surv_can_fit<- survfit(surv_can_obj ~ admin.disease_code,data=clin)
 surv_can_fit
 
 #Plot the survival curves for the different groups
-ggplot_age_surv <- ggsurvplot(surv_can_fit,
+ggplot_can_surv <- ggsurvplot(surv_can_fit,
            pval = TRUE,
            conf.int = TRUE,
            conf.int.fill="strata",
@@ -842,7 +853,7 @@ ggplot_age_surv <- ggsurvplot(surv_can_fit,
            title="Survival Curves")
 
 #Plot the cumulative hazard rates for the different groups
-ggplot_age_cumhaz <- ggsurvplot(surv_can_fit,
+ggplot_can_cumhaz <- ggsurvplot(surv_can_fit,
            pval = TRUE,
            conf.int = TRUE,
            conf.int.fill="strata",
@@ -856,9 +867,16 @@ ggplot_age_cumhaz <- ggsurvplot(surv_can_fit,
            tables.height=0.3,
            surv.plot.height=1)
 
-arrange_ggsurvplots(list(ggplot_age_surv, ggplot_age_cumhaz), ncol=1)
+arrange_ggsurvplots(list(ggplot_can_surv, ggplot_can_cumhaz), ncol=1)
 ```
 
+### Check for Difference between the survival curves
+```{r}
+survdiff(surv_can_obj ~ factor(admin.disease_code,exclude=NULL),data=clin)
+surv_pairdiff_can <- pairwise_survdiff(Surv(years_to_event,patient.vital_status)~admin.disease_code,data=clin)
+surv_pairdiff_can
+```
+The survival curves of each of the three cncer types are found to be significantly different from each other. 
 
 
 ##Time to Event only
@@ -1991,24 +2009,26 @@ plot(cox_all$residuals)
 The base hazard model corresponds to age=0, treatment type of chemotherapy, and cancer stage 1. Of the other predictors, the coefficients for  age, therapy_type of "No info", cancer stages of 3,4, and X are found to be significant. 
 
 The Cox model equation can then be written as: 
- $$  H(t|age,chemo,hormone,no_info, other,stage1,stage2,stage3,stage4,stageX) = 
+ $$  H(t|age,,no_info, stage3,stage4,stageX) = 
 H_0(t) exp(0.023*age + 1.18*No\_info + 1.09*stage3 + 1.685*stage4 + 0.97*stageX) 
 $$ 
 This equation can be used to compute the cumulative hazard rate for new values. 
 
 Considering only the significant predictors, the hazard ratio (exp(coef)) values are used to summarise the following findings. Recall that while analyzing each of the predictors, all the other predictors in the model are accounted for by using their mean values. 
 
-   1. For every increase in age at diagnosis by one year, the risk of death increases by a factor of 1.02.
-   2. Compared to subjects on chemotherapy treatment, the risk of death for subjects with No info on the therapy increases by a factor of 3.25
-   4. Compared to subjects diagnosed with stage 1 cancer, the risk of death increases by a factor of 2.98 for subjects diagnosed with lymph node stage 3  
-   5. Compared to subjects diagnosed with stage 1 cancer, the risk of death increases by a factor of 5.39 for subjects diagnosed with lymph node stage 4  
-   6. Compared to subjects diagnosed with stage 1 cancer, the risk of death increases by a factor of 2.64 for subjects diagnosed with lymph node stage X (or not assessed) cancer 
+1. For every increase in age at diagnosis by one year, the risk of death increases by a factor of 1.02.
+2. Compared to subjects on chemotherapy treatment, the risk of death for subjects with No info on the therapy increases by a factor of 3.25
+3. Compared to subjects diagnosed with stage 1 cancer, the risk of death increases by a factor of 2.98 for subjects diagnosed with cancer stage 3  
+4. Compared to subjects diagnosed with stage 1 cancer, the risk of death increases by a factor of 5.39 for subjects diagnosed with cancer stage 4  
+5. Compared to subjects diagnosed with stage 1 cancer, the risk of death increases by a factor of 2.64 for subjects diagnosed with cancer stage X (or not assessed) cancer 
 
 
 ### Cox model with Age, Therapy, Tumor, and Lymph Node Stages
 ```{r}
-cox_all_2 <- coxph(surv_obj_all ~ age + therapy_type +  pathologyTstage + pathologyNstage, data=brca_clin)
+cox_all_2 <- coxph(surv_obj_all ~ age + therapy_type +  pathologyNstage, data=brca_clin)
+
 ```
+
 
 **Check for Proportional Hazards Assumption**
 ```{r}
@@ -2033,18 +2053,19 @@ plot(cox_all_2$residuals)
 The base hazard model corresponds to age=0, treatment type of chemotherapy, tumor stage 1 and lymph node stage 0 (n0 - no cancer in lymph nodes). Of the other predictors, the coefficients for  age, therapy_type of "No info", lymph node stages n2, n3, and nX are found to be significant.
 
 The Cox model equation can then be written as: 
- $$  H(t|age,chemo,hormone,no_info, other,t1,t2,t3,t4,tX,n0,n1,n2,n3,nX) = 
-H_0(t) exp(0.02*age + 1.38*No\_info + 1.52*n2 + 1.80*n3 + 0.91*stageX) 
+ $$  H(t|age,no_info,n2,n3,nX) = 
+H_0(t) exp(0.02*age + 1.35*No\_info + 0.55*n1 + 1.47*n2 + 1.65*n3 + 0.86*stageX) 
 $$ 
 This equation can be used to compute the cumulative hazard rate for new values. 
 
 Considering only the significant predictors, the hazard ratio (exp(coef)) values are used to summarise the following findings. Recall that while analyzing each of the predictors, all the other predictors in the model are accounted for by using their mean values. 
 
-   1. For every increase in age at diagnosis by one year, the risk of death increases by a factor of 1.02.
-   2. Compared to subjects on chemotherapy treatment, the risk of death for subjects with No info on the therapy increases by a factor of 3.96
-   4. Compared to subjects diagnosed with stage 1 cancer, the risk of death increases by a factor of 4.6 for subjects diagnosed with stage n2
-   5. Compared to subjects diagnosed with stage 1 cancer, the risk of death increases by a factor of 5.9 for subjects diagnosed with stage n3
-   6. Compared to subjects diagnosed with stage 1 cancer, the risk of death increases by a factor of 2.5 for subjects diagnosed with stage nX (or not assessed) cancer 
+1. For every increase in age at diagnosis by one year, the risk of death increases by a factor of 1.02.
+2. Compared to subjects on chemotherapy treatment, the risk of death for subjects with No info on the therapy increases by a factor of 3.96
+3.  Compared to subjects diagnosed with nstage 0 cancer, the risk of death increases by a factor of 1.73 for subjects diagnosed with stage n1
+4. Compared to subjects diagnosed with nstage 0 cancer, the risk of death increases by a factor of 4.3 for subjects diagnosed with stage n2
+5. Compared to subjects diagnosed with nstage 0 cancer, the risk of death increases by a factor of 5.2 for subjects diagnosed with stage n3
+6. Compared to subjects diagnosed with nstage 0 cancer, the risk of death increases by a factor of 2.4 for subjects diagnosed with stage nX (or not assessed) cancer 
 
 #### Cox Proportional Hazard Model for All - with interactions
 THe final step is to build a Cox PH model considering the interactions between each of the the variables - two-way, three-way, and four-way where applicable. When this is attempted, the Cox does not converge when interactions are considered between any sets of variables. So, this indicates that the predictors are independent. 
@@ -2122,9 +2143,9 @@ ifelse(better_dist == "weibull", surv_wei_all_conv, summary(surv_exp_all))
 # Summary of Results
 The following findings can be summarised:
 
-   1. No predictors:
+1. No predictors:
       a. Kaplan Meir Results: Median Survival Time: 9.5 years
-   2. Age at first diagnosis:
+2. Age at first diagnosis:
       a. Kaplan Meir Results:
          a. For the young group (age < 40), the initial risk rate is high.
          b. Survival curves for the middle (40-60) and old age (>60) groups differe significantly.
@@ -2137,38 +2158,38 @@ The following findings can be summarised:
          b. When age is used as acontinuous varaible, it is found that The risk of death increases slowly by a factor 1.02 for every increase in age by a year.
          c. When age is used as a categorical varialbe (young, middle, old), it is found that  the risk of death for the middle age group (ages 40-60) is almost 45% less (HR=0.55) than the risk of death for the younger group (age < 40) and the risk of death for the older age group (age > 60) is slightly higher by 10% compared to the younger age group. Equivalently, the survival time for the middle age group is higher by 46 % (ETR=1.46) for the middle age group when compared with the younger group and the survival time for the older age group is less by 5% when compared with the younger age group.
       
-   3. Race:
+3. Race:
       a. Kaplan Meir Results:
          No difference in the survival curves between the races
       b. Parametric Model: Models are not good fits
       c. Cox Proportional Hazards Model: No significant difference between the races.
-   4. Ethnicity: 
+4. Ethnicity: 
       a. Kaplan Meir Results: Median age for non-hispanc group is 9.51 years. No sufficient data for other group
       b. Parametric Model: Not good models
       c. Cox Proportional Hazards Model: Not a good fit. 
-   5. Therapy Type:
+5. Therapy Type:
       a. Kaplan Meir Results: "No Info" group is significantly different from the other therapy groups with the survival of probability descreasing rapidly with no treatment.
       b. Parametric Model: Only exponential model fits. The constant hazard rate is 0.04 events/year and risk of death increases by 4.87 with no treatment vs chemotherapy
       c. Cox Proportional Hazards Model: The risk of death increases by a factor of 4 with no treatmentvs chemotherapy.
-   6. Cancer Stage Diagnosis:
+6. Cancer Stage Diagnosis:
       a. Kaplan Meir Results:  Median survival time decreases with increase in diagnosis of cancer stage number from 10.8 years to 3.7 years. The survival curves of all stges are different from each other except between stage 1 and stage 2.
       b. Parametric Model:
          i. Weibull is the better model. 
          ii. From the converted results of the weibull model, the risk of death increases with increase in the cancer stage number. When compared with the risk of death for stage 1, the risk is higher by a factor of 1.3 for stage 2, by a factor of 2.5 for stage 3 and by a factor of 6.6 for stage 4.  Equivalently, the survival time for the stage 2 group reduces by 16% for stage 2, by 45% for stage 3 and by 70% for stage 4 when comapred with the survival time length for stage 1. 
       c. Cox Proportional Hazards Model: Proportional  hazards condition not met. Splitting up the datasets on time does not yield good Cox models. 
-   7. Tumor Stage:
+7. Tumor Stage:
       a. Kaplan Meir Results: Median survival time decreases with increase in stage number of the tumor from 10 years for the first three stages to 4.5 years for stage t4. The survival curves are not found to be significantly different.
       b. Parametric Model:
       c. Cox Proportional Hazards Model: Proportional Hazards condition is not met. Splitting up the datasets on time does not yield good Cox models. 
-   8. Metastasis Stage:
+8. Metastasis Stage:
       a. Kaplan Meir Results: The median survival time is 10.5 years for stage m0 , with no metastasis. The survival curves for stages m0 and m1 are just slightly different from each not but statistically significant.
       b. Parametric Model: Both models are not good fits.
       c. Cox Proportional Hazards Model: Cox model is not a good fit as it results in infinite values.
-   9. Lymphnodes Stage:
+9. Lymphnodes Stage:
       a. Kaplan Meir Results: Survival time reduces exponentially with increase in the number of lymph nodes with metastasis. The median survival time reduces from 11.7 years to 6.7 years. Survival curve for stage n0 (no metastasis in lymph nodes) is significantly different from survival curces 
       b. Parametric Model: Weibull is the best fit model.  when compared to the group of subjects with no metastasis in the lymph nodes, the risk of death increases by a facgor of 1.98 when the metastasis increases to 1-3 lymph nodes, increases by a factor of 3.3 when the metastasis increases to 4-9 lymph nodes and by a factor of 5.5 whe metastasis increases to 10 or more lymph nodes.
       c. Cox Proportional Hazards Model: Cox model is a good fit and coefficients for all stages are significant. Hazard ratio and hence the risk of death increases for each stage relative to the stage with no metastasis.  When compared to the group of subjects with no metastasis in the lymph nodes (stage n0), the risk of death increases by a factor of 1.95 when the metastasis increases to 1-3 lymph nodes (stage n1), increases by a factor of 3.15 when the metastasis increases to 4-9 lymph nodes (stage n2) and by a factor of 5.22 when metastasis increases to 10 or more lymph nodes (stage n3). 
-   10. Combined:
+10. Combined:
       a. Cox Proportional Hazards Model (Age, Therapy, Cancer Stage): The base hazard model corresponds to age=0, treatment type of chemotherapy, and cancer stage 1. Of the other predictors, the coefficients for  age, therapy_type of "No info", cancer stages of 3,4, and X are found to be significant. 
       
          i. For every one additional year of age, the risk of death increases by a factor of 1.02.
@@ -2179,24 +2200,28 @@ The following findings can be summarised:
       b. Cox Proportional Hazards Model (Age, Therapy, Lymph Nodes Stage): The base hazard model corresponds to age=0, treatment type of chemotherapy, tumor stage 1 and lymph node stage 0 (n0 - no cancer in lymph nodes). Of the other predictors, the coefficients for  age, therapy_type of "No info", lymph node stages n2,n3, and nX are found to be significant.
       
          i. For every one additional year of age, the risk of death increases by a factor of 1.02.
-         ii. Compared to subjects on chemotherapy treatment, the risk of death for subjects with No info on the therapy increases by a factor of 3.96
-         iii. Compared to subjects diagnosed with stage 1 cancer, the risk of death increases by a factor of 4.6 for subjects diagnosed with stage n2
-         iv. Compared to subjects diagnosed with stage 1 cancer, the risk of death increases by a factor of 5.9 for subjects diagnosed with stage n3
-         v. Compared to subjects diagnosed with stage 1 cancer, the risk of death increases by a factor of 2.5 for subjects diagnosed with stage nX (or not assessed) cancer  
+         ii. Compared to subjects on chemotherapy treatment, the risk of death for subjects with No info on the therapy increases by a factor of 3.86
+         iii. Compared to subjects diagnosed with nstage 0 cancer, the risk of death increases by a factor of 1.7 for subjects diagnosed with stage n1
+         iii. Compared to subjects diagnosed with nstage 0 cancer, the risk of death increases by a factor of 4.3 for subjects diagnosed with stage n2
+         iv. Compared to subjects diagnosed with nstage 0 cancer, the risk of death increases by a factor of 5.2 for subjects diagnosed with stage n3
+         v. Compared to subjects diagnosed with nstage 0 cancer, the risk of death increases by a factor of 2.4 for subjects diagnosed with stage nX (or not assessed) cancer  
       
 
 # Answers to Research Questions:
-   1. What is the median survival time for breast cancer?
-      In the absence of any predictors, the median survival time is 9.5 years.
-   2. How do different cancers (breast, ovarian, lung) affect survival rates?
-      Of the three types of cancers  BRCA (breast cancer), GBM (Glioblastoma Multiforme) and OV (Ovarian Cancer) that were compared, BRCA has the highest survival rate.
-   3. What are the important factors that influence risk of death for Breast Cancer?
-      When considered individually or together age at first diagnosis, no therapy, cancer stage 3 and cancer stage 4, and any metastasis into the lymph nodes significantly reduce survival time. 
-   4. What are the effects of each factor on survival?  
-      The number of lymph nodes that have been metasized into seems to be the strongest predictor of survival. 
-   5. What is the probability of survival for breast cancer when other clinical covariates are considered?
-      The results do not change when the predictors are all accounted for indicating an additive model with no interactions. 
+1. What is the median survival time for breast cancer?
+   - In the absence of any predictors, the median survival time is 9.5 years.
+2. How do different cancers (breast, ovarian, lung) affect survival rates?
+   - Of the three types of cancers  BRCA (breast cancer), GBM (Glioblastoma Multiforme) and OV (Ovarian Cancer) that were compared, BRCA has the highest survival rate.
+3. What are the important factors that influence risk of death for Breast Cancer?
+   - When considered individually or together age at first diagnosis, no therapy, cancer stage 3 and cancer stage 4, and any metastasis into the lymph nodes significantly reduce survival time. 
+4. What are the effects of each factor on survival?  
+   - The number of lymph nodes that have been metasized into seems to be the strongest predictor of survival. 
+5. What is the probability of survival for breast cancer when other clinical covariates are considered?
+   - The results do not change when the predictors are all accounted for indicating an additive model with no interactions. 
 
+---
+nocite: |
+  @clinicalTrials, @psu_notes, @SA_Ref1, @SA_Ref2, @SA_Ref3, @RSA_1, @TCGA1
+---
 
-
-#References
+# References
